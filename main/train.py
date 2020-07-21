@@ -40,7 +40,7 @@ def parse_args():
         type= ast.literal_eval,
         dest = 'auto_resume',
         required=False,
-        default= True,
+        default= False,
     )
 
     parser.add_argument(
