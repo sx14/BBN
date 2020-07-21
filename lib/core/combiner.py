@@ -26,7 +26,7 @@ class Combiner:
             model, criterion, image, label, meta, **kwargs
         )
 
-    def default(self, model, criterion, image, label, **kwargs):
+    def default(self, model, criterion, image, label, meta, **kwargs):
         image, label = image.to(self.device), label.to(self.device)
         output = model(image)
         loss = criterion(output, label)
