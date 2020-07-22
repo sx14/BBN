@@ -10,12 +10,11 @@ import random
 class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
     cls_num = 10
 
-    def __init__(self, mode, cfg, root = './datasets/imbalance_cifar10', imb_type='exp',
+    def __init__(self, mode, cfg, root='./datasets/imbalance_cifar10', imb_type='exp',
                  transform=None, target_transform=None, download=True):
         train = True if mode == "train" else False
         super(IMBALANCECIFAR10S, self).__init__(root, train, transform, target_transform, download)
         self.cfg = cfg
-        self.level = cfg.LEVEL
         self.train = train
         self.dual_sample = True if cfg.TRAIN.SAMPLER.DUAL_SAMPLER.ENABLE and self.train else False
         rand_number = cfg.DATASET.IMBALANCECIFAR.RANDOM_SEED
@@ -31,20 +30,11 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
                 transforms.ToTensor(),
                 transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
             ])
-            self.level_to_cls = self._split_levels(img_num_list)
-            self.cls_to_level = []
-            for level in range(len(self.level_to_cls)):
-                self.cls_to_level += [level] * len(self.level_to_cls[level])
-            for level in range(len(self.level_to_cls)):
-                print('Level %d: %d (%d)' % (level+1, sum([img_num_list[cls] for cls in self.level_to_cls[level]]),
-                                             len(self.level_to_cls[level])))
-            self._augment_level_labels()
-            self.cls_num = len(self.level_to_cls)
         else:
             self.transform = transforms.Compose([
-                             transforms.ToTensor(),
-                             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-                            ])
+                transforms.ToTensor(),
+                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            ])
         print("{} Mode: Contain {} images".format(mode, len(self.data)))
         if self.dual_sample or (self.cfg.TRAIN.SAMPLER.TYPE == "weighted sampler" and self.train):
             self.class_weight, self.sum_weight = self.get_weight(self.get_annotations(), self.cls_num)
@@ -55,7 +45,7 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
         img_num_per_cls = []
         if imb_type == 'exp':
             for cls_idx in range(cls_num):
-                num = img_max * (imb_factor**(cls_idx / (cls_num - 1.0)))
+                num = img_max * (imb_factor ** (cls_idx / (cls_num - 1.0)))
                 img_num_per_cls.append(int(num))
         elif imb_type == 'step':
             for cls_idx in range(cls_num // 2):
@@ -98,9 +88,27 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
         return class_weight, sum_weight
 
     def __getitem__(self, index):
-        img, target = self.data[index], self.level_targets[index]
+        """
+        Args:
+            index (int): Index
 
-        return img, target
+        Returns:
+            tuple: (image, target) where target is index of the target class.
+        """
+        img, target = self.data[index], self.targets[index]
+        meta = dict()
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target, meta
 
     def get_num_classes(self):
         return self.cls_num
@@ -108,47 +116,10 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
     def reset_epoch(self, epoch):
         self.epoch = epoch
 
-    @staticmethod
-    def _split_levels(img_num_list, level_num=2):
-        if level_num == 2:
-            # 2-8 rule
-            class_num = len(img_num_list)
-            return [[i for i in range(int(class_num * 0.2))],
-                    [i for i in range(int(class_num * 0.2), class_num)]]
-        elif level_num == 3:
-            min_diff = sum(img_num_list)
-            best_flags = []
-            for flag1 in range(0, len(img_num_list)-2):
-                level1 = sum(img_num_list[:flag1+1])
-                for flag2 in range(flag1+1, len(img_num_list)-1):
-                    level2 = sum(img_num_list[flag1+1:flag2+1])
-                    level3 = sum(img_num_list[flag2+1:])
-                    flag_list = [level1, level2, level3]
-                    curr_diff = max(flag_list) - min(flag_list)
-                    if curr_diff < min_diff:
-                        min_diff = curr_diff
-                        best_flags = flag_list
-            return [[i for i in range(0, best_flags[1]+1)],
-                    [i for i in range(best_flags[1]+1, best_flags[2]+1)],
-                    [i for i in range(best_flags[2]+1, len(img_num_list))]]
-        else:
-            raise ValueError('level num is 2 or 3')
-
-    def _augment_level_labels(self):
-        cls_num_before_level = [0]
-        for level in range(1, len(self.level_to_cls)):
-            cls_num_before_level.append(cls_num_before_level[level-1] + len(self.level_to_cls[level-1]))
-
-        self.level_targets = []
-        for label in self.targets:
-            level = self.cls_to_level[label]
-            label_in_level = label - cls_num_before_level[level]
-            self.level_targets.append([label, level, label_in_level])
-
     def get_annotations(self):
         annos = []
-        for level_target in self.level_targets:
-            annos.append({'category_id': int(level_target[2])})
+        for target in self.targets:
+            annos.append({'category_id': int(target)})
         return annos
 
     def gen_imbalanced_data(self, img_num_per_cls):
@@ -168,12 +139,13 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
         new_data = np.vstack(new_data)
         self.data = new_data
         self.targets = new_targets
-        
+
     def get_cls_num_list(self):
         cls_num_list = []
         for i in range(self.cls_num):
             cls_num_list.append(self.num_per_cls_dict[i])
         return cls_num_list
+
 
 class IMBALANCECIFAR100S(IMBALANCECIFAR10S):
     """`CIFAR100 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
@@ -201,9 +173,11 @@ class IMBALANCECIFAR100S(IMBALANCECIFAR10S):
 if __name__ == '__main__':
     transform = transforms.Compose(
         [transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     trainset = IMBALANCECIFAR100S(root='./data', train=True,
-                    download=True, transform=transform)
+                                 download=True, transform=transform)
     trainloader = iter(trainset)
     data, label = next(trainloader)
-    import pdb; pdb.set_trace()
+    import pdb;
+
+    pdb.set_trace()

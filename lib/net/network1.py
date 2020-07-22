@@ -5,9 +5,9 @@ from backbone import res50, bbn_res50, res32_cifar, bbn_res32_cifar
 from modules import GAP, Identity, FCNorm
 
 
-class Network(nn.Module):
-    def __init__(self, cfg, mode="train", num_classes=1000):
-        super(Network, self).__init__()
+class Network1(nn.Module):
+    def __init__(self, cfg, mode="train", num_classes=[1000]):
+        super(Network1, self).__init__()
         pretrain = (
             True
             if mode == "train"
@@ -26,7 +26,7 @@ class Network(nn.Module):
             last_layer_stride=2,
         )
         self.module = self._get_module()
-        self.classifier = self._get_classifer()
+        self.classifiers = self._get_classifers()
         self.feature_len = self.get_feature_length()
 
 
@@ -110,15 +110,17 @@ class Network(nn.Module):
         return module
 
 
-    def _get_classifer(self):
+    def _get_classifers(self):
         bias_flag = self.cfg.CLASSIFIER.BIAS
 
         num_features = self.get_feature_length()
-        if self.cfg.CLASSIFIER.TYPE == "FCNorm":
-            classifier = FCNorm(num_features, self.num_classes)
-        elif self.cfg.CLASSIFIER.TYPE == "FC":
-            classifier = nn.Linear(num_features, self.num_classes, bias=bias_flag)
-        else:
-            raise NotImplementedError
-
-        return classifier
+        # if self.cfg.CLASSIFIER.TYPE == "FCNorm":
+        #     classifier = FCNorm(num_features, self.num_classes)
+        # elif self.cfg.CLASSIFIER.TYPE == "FC":
+        #     classifier = nn.Linear(num_features, self.num_classes, bias=bias_flag)
+        # else:
+        #     raise NotImplementedError
+        classifiers = nn.ModuleList()
+        for level_class_num in self.num_classes:
+            classifiers.append(nn.Linear(num_features, level_class_num, bias=bias_flag))
+        return classifiers
