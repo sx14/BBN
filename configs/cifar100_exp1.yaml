@@ -1,3 +1,4 @@
+# DESCRIPTION: 'exp1: merge tail classes as virtual head classes, train on single-level data (head+virtual head)'
 NAME: 'exp1.CIFAR100.res32.200epoch'
 OUTPUT_DIR: './output/cifar100'
 SHOW_STEP: 100

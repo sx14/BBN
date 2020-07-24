@@ -65,13 +65,14 @@ def valid_model(dataLoader, model, cfg, device, num_classes):
                         "top_3": topk_result[i],
                     }
                 )
-                top1_count += [topk_result[i][0] == image_labels[i]]
+                top1_count += [image_labels[i] == topk_result[i][0]]
                 top2_count += [image_labels[i] in topk_result[i][0:2]]
                 top3_count += [image_labels[i] in topk_result[i][0:3]]
                 index += 1
             now_acc = np.sum(top1_count) / index
             pbar.set_description("Now Top1:{:>5.2f}%".format(now_acc * 100))
             pbar.update(1)
+    pbar.close()
     top1_acc = float(np.sum(top1_count) / len(top1_count))
     top2_acc = float(np.sum(top2_count) / len(top1_count))
     top3_acc = float(np.sum(top3_count) / len(top1_count))
@@ -80,7 +81,11 @@ def valid_model(dataLoader, model, cfg, device, num_classes):
             top1_acc * 100, top2_acc * 100, top3_acc * 100
         )
     )
-    pbar.close()
+
+    print('Precision per class:')
+    print(fusion_matrix.get_pre_per_class())
+    print('Recall per class:')
+    print(fusion_matrix.get_rec_per_class())
 
 
 if __name__ == "__main__":

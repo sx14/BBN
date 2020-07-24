@@ -10,7 +10,7 @@ import random
 
 
 class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
-    cls_num = 4
+    cls_num = 10
 
     def __init__(self, mode, cfg, root='./datasets/imbalance_cifar10', imb_type='exp',
                  transform=None, target_transform=None, download=True):
@@ -39,10 +39,26 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
                 transforms.ToTensor(),
                 transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
             ])
+        self.convert_labels()  # merge
         print("{} Mode: Contain {} images".format(mode, len(self.data)))
         if self.dual_sample or (self.cfg.TRAIN.SAMPLER.TYPE == "weighted sampler" and self.train):
             self.class_weight, self.sum_weight = self.get_weight(self.get_annotations(), self.cls_num)
             self.class_dict = self._get_class_dict()
+
+    def load_label_map(self):
+        # class_id to level_class_id
+        cifar, N = self.base_folder.split('-')[:2]
+        cid_to_lcid_path = os.path.join(self.root, '%s-%s-cache' % (cifar, N), 'cid_to_lcid.bin')
+        with open(cid_to_lcid_path, 'rb') as f:
+            cid_to_lcid = pickle.load(f)
+        return cid_to_lcid
+
+    def convert_labels(self):
+        # merge tail classes
+        for i in range(len(self.targets)):
+            target = self.targets[i]
+            self.targets[i] = self.label_map[target][0]
+        self.cls_num = self.label_map[:, 0].max() + 1
 
     def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
         img_max = len(self.data) / cls_num
@@ -59,13 +75,6 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
         else:
             img_num_per_cls.extend([int(img_max)] * cls_num)
         return img_num_per_cls
-
-    def sample_class_index_by_weight(self):
-        rand_number, now_sum = random.random() * self.sum_weight, 0
-        for i in range(self.cls_num):
-            now_sum += self.class_weight[i]
-            if rand_number <= now_sum:
-                return i
 
     def reset_epoch(self, cur_epoch):
         self.epoch = cur_epoch
@@ -100,9 +109,6 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
             tuple: (image, target) where target is index of the target class.
         """
         img, target = self.data[index], self.targets[index]
-
-        # merge tail classes
-        target = self.label_map[0][target]
         meta = dict()
 
         # doing this so that it is consistent with all other datasets
@@ -126,7 +132,6 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
     def get_annotations(self):
         annos = []
         for target in self.targets:
-            target = self.label_map[0][target]
             annos.append({'category_id': int(target)})
         return annos
 
@@ -154,13 +159,6 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
             cls_num_list.append(self.num_per_cls_dict[i])
         return cls_num_list
 
-    def load_label_map(self):
-        cifar, N = self.base_folder.split('-')[:2]
-        cid_to_lcid_path = os.path.join(self.root, '%s-%s-cache' % (cifar, N), 'cid_to_lcid.bin')
-        with open(cid_to_lcid_path) as f:
-            cid_to_lcid = pickle.load(f)
-        return cid_to_lcid
-
 
 class IMBALANCECIFAR100S(IMBALANCECIFAR10S):
     """`CIFAR100 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
@@ -182,7 +180,7 @@ class IMBALANCECIFAR100S(IMBALANCECIFAR10S):
         'key': 'fine_label_names',
         'md5': '7973b15100ade9c7d40fb424638fde48',
     }
-    cls_num = 22
+    cls_num = 100
 
 
 if __name__ == '__main__':
