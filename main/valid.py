@@ -117,5 +117,5 @@ if __name__ == "__main__":
         pin_memory=cfg.PIN_MEMORY,
     )
     matrix = valid_model(testLoader, model, cfg, device, num_classes)
-    print('Pre from %d to %d: %.2f' % (args.start, args.end, matrix.get_pre_in_range(args.start, args.end)))
-    print('Rec from %d to %d: %.2f' % (args.start, args.end, matrix.get_rec_in_range(args.start, args.end)))
+    print('Pre from %d to %d: %.4f' % (args.start, args.end, matrix.get_pre_in_range(args.start, args.end)))
+    print('Rec from %d to %d: %.4f' % (args.start, args.end, matrix.get_rec_in_range(args.start, args.end)))

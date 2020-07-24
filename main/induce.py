@@ -42,7 +42,7 @@ def parse_args():
         "--save_dir",
         dest='save_dir',
         required=False,
-        default="datasets/imbalance_cifar10/cache",
+        default="datasets/imbalance_cifar10/cifar-100-cache",
         type=str,
     )
 
