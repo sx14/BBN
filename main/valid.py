@@ -27,6 +27,8 @@ def parse_args():
         default=None,
         nargs=argparse.REMAINDER,
     )
+    parser.add_argument('--start', dest='start', default=20, type=int)
+    parser.add_argument('--end', dest='end', default=99, type=int)
 
     args = parser.parse_args()
     return args
@@ -82,10 +84,7 @@ def valid_model(dataLoader, model, cfg, device, num_classes):
         )
     )
 
-    print('Precision per class:')
-    print(fusion_matrix.get_pre_per_class())
-    print('Recall per class:')
-    print(fusion_matrix.get_rec_per_class())
+    return fusion_matrix
 
 
 if __name__ == "__main__":
@@ -117,4 +116,6 @@ if __name__ == "__main__":
         num_workers=cfg.TEST.NUM_WORKERS,
         pin_memory=cfg.PIN_MEMORY,
     )
-    valid_model(testLoader, model, cfg, device, num_classes)
+    matrix = valid_model(testLoader, model, cfg, device, num_classes)
+    print('Pre from %d to %d: %.2f' % matrix.get_pre_in_range(args.start, args.end))
+    print('Rec from %d to %d: %.2f' % matrix.get_rec_in_range(args.start, args.end))

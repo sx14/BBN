@@ -35,6 +35,23 @@ class FusionMatrix(object):
         for i in range(length):
             self.matrix[output[i], label[i]] += 1
 
+    def get_pre_in_range(self, start, end):
+
+        tp = 0.0
+        p = 0.0
+        for cls in range(start, end+1):
+            tp += self.matrix[cls, cls]
+            p += self.matrix[cls, :].sum()
+        return tp / p
+
+    def get_rec_in_range(self, start, end):
+        tp = 0.0
+        p = 0.0
+        for cls in range(start, end+1):
+            tp += self.matrix[cls, cls]
+            p += self.matrix[:, cls].sum()
+        return tp / p
+
     def get_rec_per_class(self):
         rec = np.array(
             [
