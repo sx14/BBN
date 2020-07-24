@@ -1,5 +1,7 @@
 # To ensure fairness, we use the same code in LDAM (https://github.com/kaidic/LDAM-DRW) to produce long-tailed CIFAR datasets.
 
+import os
+import pickle
 import torchvision
 import torchvision.transforms as transforms
 import numpy as np
@@ -8,14 +10,16 @@ import random
 
 
 class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
-    cls_num = 10
+    cls_num = 4
 
     def __init__(self, mode, cfg, root='./datasets/imbalance_cifar10', imb_type='exp',
                  transform=None, target_transform=None, download=True):
         train = True if mode == "train" else False
         super(IMBALANCECIFAR10S, self).__init__(root, train, transform, target_transform, download)
         self.cfg = cfg
+        self.root = root
         self.train = train
+        self.label_map = self.load_label_map()
         self.dual_sample = True if cfg.TRAIN.SAMPLER.DUAL_SAMPLER.ENABLE and self.train else False
         rand_number = cfg.DATASET.IMBALANCECIFAR.RANDOM_SEED
         if self.train:
@@ -96,6 +100,9 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
             tuple: (image, target) where target is index of the target class.
         """
         img, target = self.data[index], self.targets[index]
+
+        # merge tail classes
+        target = self.label_map[0][target]
         meta = dict()
 
         # doing this so that it is consistent with all other datasets
@@ -119,6 +126,7 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
     def get_annotations(self):
         annos = []
         for target in self.targets:
+            target = self.label_map[0][target]
             annos.append({'category_id': int(target)})
         return annos
 
@@ -146,6 +154,13 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
             cls_num_list.append(self.num_per_cls_dict[i])
         return cls_num_list
 
+    def load_label_map(self):
+        cifar, N = self.base_folder.split('-')[:2]
+        cid_to_lcid_path = os.path.join(self.root, '%s-%s-cache' % (cifar, N), 'cid_to_lcid.bin')
+        with open(cid_to_lcid_path) as f:
+            cid_to_lcid = pickle.load(f)
+        return cid_to_lcid
+
 
 class IMBALANCECIFAR100S(IMBALANCECIFAR10S):
     """`CIFAR100 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
@@ -167,7 +182,7 @@ class IMBALANCECIFAR100S(IMBALANCECIFAR10S):
         'key': 'fine_label_names',
         'md5': '7973b15100ade9c7d40fb424638fde48',
     }
-    cls_num = 100
+    cls_num = 22
 
 
 if __name__ == '__main__':

@@ -1,5 +1,4 @@
 NAME: 'exp1.CIFAR100.res32.200epoch'
-
 OUTPUT_DIR: './output/cifar100'
 SHOW_STEP: 100
 SAVE_STEP: 5
