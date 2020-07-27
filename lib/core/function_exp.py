@@ -39,8 +39,10 @@ def train_model(
     batch_cnt = 0
     batch_loss = 0
     batch_acc = [0] * label_map.shape[1]
+    batch_sizes = [0] * label_map.shape[1]
     for i, (image, label, meta) in enumerate(trainLoader):
         batch_cnt += 1
+
         loss = None
         for level in range(label_map.shape[1]):
             level_label = label_map[label, level]
@@ -59,8 +61,9 @@ def train_model(
                 loss = level_loss
             else:
                 loss += level_loss
-            batch_acc[level] += level_acc
 
+            batch_acc[level] += level_acc
+            batch_sizes[level] = level_label.shape[0]
             all_cnt[level] += level_label.shape[0]
             all_acc[level] += level_acc * level_label.shape[0]
 
@@ -70,8 +73,8 @@ def train_model(
         optimizer.step()
 
         if i % cfg.SHOW_STEP == 0:
-            pbar_str = "Epoch:{:>3d}  Batch:{:>3d}/{}  Batch_Loss:{:>5.3f}  ".format(
-                epoch, i, number_batch, batch_loss / batch_cnt)
+            pbar_str = "Epoch:{:>3d}  Batch:{:>3d}/{}  Batch_Loss:{:>5.3f}  L1/L2:{}/{}  ".format(
+                epoch, i, number_batch, batch_loss / batch_cnt, batch_sizes[0], batch_sizes[1])
             for level, acc in enumerate(batch_acc):
                 pbar_str += 'Level %d Acc: %.4f  ' % (level + 1, acc / batch_cnt)
             logger.info(pbar_str)
@@ -121,13 +124,10 @@ def valid_model(
                 else:
                     high_lcid_to_curr_lcid = level_label_maps[level-1]
                     level_prob = torch.zeros(level_score.shape).cuda()
-                    cnt = 0
                     for high_lcid in range(high_lcid_to_curr_lcid.shape[0]):
                         curr_lcid_mask = high_lcid_to_curr_lcid[high_lcid]
                         if curr_lcid_mask.sum().item() > 0:
-                            cnt += curr_lcid_mask.sum().item()
                             level_prob[:, curr_lcid_mask] = func(level_score[:, curr_lcid_mask])
-                    assert cnt == high_lcid_to_curr_lcid.shape[1]
                     level_probs.append(level_prob)
 
             all_probs = torch.ones((batch_size, num_classes)).cuda()

@@ -73,8 +73,7 @@ def load_label_map(cache_dir):
     with open(save_path, 'rb') as f:
         level_label_maps = pickle.load(f)
     for level in range(len(level_label_maps)):
-        level_label_maps[level] = torch.from_numpy(level_label_maps[level]).long()
-
+        level_label_maps[level] = torch.from_numpy(level_label_maps[level]).byte()
     return label_map, level_label_maps
 
 
