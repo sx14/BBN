@@ -13,6 +13,7 @@ from utils.utils import (
 )
 from core.function import train_model, valid_model
 from core.combiner import Combiner
+from core.hierarchy import Tree, Node
 
 import torch
 import numpy as np
@@ -84,8 +85,6 @@ if __name__ == "__main__":
     auto_resume = args.auto_resume
 
     train_set = eval(cfg.DATASET.DATASET)("train", cfg)
-    valid_set = eval(cfg.DATASET.DATASET)("valid", cfg)
-
     annotations = train_set.get_annotations()
     num_classes = train_set.get_num_classes()
     device = torch.device("cpu" if cfg.CPU_MODE else "cuda")
@@ -121,13 +120,15 @@ if __name__ == "__main__":
         #         min_diff = abs(part1 - part2)
         #         flag = i
         # level_ranges = [[0, flag], [flag + 1, num_classes]]
-        level_ranges = [[0, int(num_classes * 0.2)],
-                        [int(num_classes * 0.2), num_classes]]
+        level_ranges = [(0, int(num_classes * 0.2)),
+                        (int(num_classes * 0.2), num_classes)]
     else:
         raise ValueError('Level num = 2 only.')
 
     cid_to_lcid = np.ones((num_classes, level_num)) * (-1)
     cid_to_lcid = cid_to_lcid.astype(int)
+
+    curr_lcid_to_next_lcid = [None] * (level_num - 1)
     for level in range(level_num):
         curr_level_start, curr_level_end = level_ranges[level]
         curr_level_class_num = curr_level_end - curr_level_start
@@ -137,6 +138,9 @@ if __name__ == "__main__":
 
         if level < level_num - 1:
             next_level_start, next_level_end = level_ranges[level+1]
+            next_level_class_num = next_level_end - next_level_start
+            curr_lcid_to_next_lcid[level] = np.zeros((curr_level_class_num + cluster_num,
+                                                      next_level_class_num)).astype(int)
             next_level_centers = next_level_centers[next_level_start: next_level_end]
             clustering = AgglomerativeClustering(
                 linkage='ward',
@@ -145,8 +149,10 @@ if __name__ == "__main__":
 
             cluster_logits = clustering.labels_
             for i in range(cluster_num):
-                class_ids = np.where(cluster_logits == i)[0] + next_level_start
-                cid_to_lcid[class_ids, level] = curr_level_class_num + i
+                lcids = np.where(cluster_logits == i)[0]
+                cids = lcids + next_level_start
+                cid_to_lcid[cids, level] = curr_level_class_num + i
+                curr_lcid_to_next_lcid[level][curr_level_class_num + i, lcids] = 1
 
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
@@ -154,4 +160,9 @@ if __name__ == "__main__":
     save_path = os.path.join(args.save_dir, 'cid_to_lcid.bin')
     with open(save_path, 'wb') as f:
         pickle.dump(cid_to_lcid, f)
+    print('Class map is saved at %s.' % save_path)
+
+    save_path = os.path.join(args.save_dir, 'curr_lcid_to_next_lcid.bin')
+    with open(save_path, 'wb') as f:
+        pickle.dump(curr_lcid_to_next_lcid, f)
     print('Class map is saved at %s.' % save_path)

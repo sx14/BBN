@@ -6,7 +6,7 @@ from modules import GAP, Identity, FCNorm
 
 
 class Network1(nn.Module):
-    def __init__(self, cfg, mode="train", num_classes=[1000]):
+    def __init__(self, cfg, mode, num_classes):
         super(Network1, self).__init__()
         pretrain = (
             True
@@ -30,17 +30,12 @@ class Network1(nn.Module):
         self.feature_len = self.get_feature_length()
 
 
-    def forward(self, x, **kwargs):
-        if "feature_flag" in kwargs or "feature_cb" in kwargs or "feature_rb" in kwargs:
-            return self.extract_feature(x, **kwargs)
-        elif "classifier_flag" in kwargs:
-            return self.classifier(x)
+    def forward(self, x, level):
 
         x = self.backbone(x)
         x = self.module(x)
         x = x.view(x.shape[0], -1)
-
-        x = self.classifier(x)
+        x = self.classifiers[level].forward(x)
         return x
 
     def extract_classifier_weight(self):

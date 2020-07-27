@@ -5,6 +5,7 @@ import os
 import torch
 from utils.lr_scheduler import WarmupMultiStepLR
 from net import Network
+from net import Network1
 
 
 def create_logger(cfg):
@@ -88,7 +89,10 @@ def get_scheduler(cfg, optimizer):
 
 
 def get_model(cfg, num_classes, device, logger):
-    model = Network(cfg, mode="train", num_classes=num_classes)
+    if isinstance(num_classes, list):
+        model = Network1(cfg, mode="train", num_classes=num_classes)
+    else:
+        model = Network(cfg, mode="train", num_classes=num_classes)
 
     if cfg.BACKBONE.FREEZE == True:
         model.freeze_backbone()
