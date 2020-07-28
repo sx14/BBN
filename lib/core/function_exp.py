@@ -92,13 +92,10 @@ def valid_model(
         dataLoader,
         epoch_number,
         model,
-        cfg,
-        criterion,
         logger,
         device,
         label_map,
-        level_label_maps,
-        **kwargs):
+        level_label_maps):
 
     model.eval()
     num_levels = label_map.shape[1]
@@ -106,6 +103,8 @@ def valid_model(
     fusion_matrix = FusionMatrix(num_classes)
     func = torch.nn.Softmax(dim=1)
     acc = AverageMeter()
+    l1_acc = AverageMeter()
+    l2_acc = AverageMeter()
 
     with torch.no_grad():
         for i, (image, label, meta) in enumerate(dataLoader):
@@ -140,12 +139,26 @@ def valid_model(
                 assert unrelated_class_num1 == unrelated_class_num2
                 all_probs[:, unrelated_class_num1:] *= level_prob[:, related_lcids]
 
+            l1_mask = label < 20
+            l1_scores = all_probs[l1_mask]
+            l1_labels = label[l1_mask]
+            l1_result = torch.argmax(l1_scores, 1)
+            l1_now_acc, l1_cnt = accuracy(l1_result.cpu().numpy(), l1_labels.cpu().numpy())
+            l1_acc.update(l1_now_acc, l1_cnt)
+
+            l2_mask = label >= 20
+            l2_scores = all_probs[l2_mask]
+            l2_labels = label[l2_mask]
+            l2_result = torch.argmax(l2_scores, 1)
+            l2_now_acc, l2_cnt = accuracy(l2_result.cpu().numpy(), l2_labels.cpu().numpy())
+            l2_acc.update(l2_now_acc, l2_cnt)
+
             now_result = torch.argmax(all_probs, 1)
             fusion_matrix.update(now_result.cpu().numpy(), label.cpu().numpy())
             now_acc, cnt = accuracy(now_result.cpu().numpy(), label.cpu().numpy())
             acc.update(now_acc, cnt)
 
-        pbar_str = "------- Valid: Epoch:{:>3d}  Valid_Acc:{:>5.2f}-------".format(
-            epoch_number, acc.avg)
+        pbar_str = "------- Valid: Epoch:{:>3d}  Valid_Acc:{:>5.4f}  L1_Acc:{:>5.4f}  L2_Acc:{:>5.4f}-------".format(
+            epoch_number, acc.avg, l1_acc.avg, l2_acc.avg)
         logger.info(pbar_str)
     return acc.avg

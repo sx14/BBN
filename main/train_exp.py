@@ -234,8 +234,7 @@ if __name__ == "__main__":
 
         # loss_dict, acc_dict = {"train_loss": train_loss}, {"train_acc": train_acc}
         if cfg.VALID_STEP != -1 and epoch % cfg.VALID_STEP == 0:
-            valid_acc = valid_model(
-                validLoader, epoch, model, cfg, criterion, logger, device, label_map, level_label_maps, writer=writer)
+            valid_acc = valid_model(validLoader, epoch, model, logger, device, label_map, level_label_maps)
             # loss_dict["valid_loss"], acc_dict["valid_acc"] = valid_loss, valid_acc
             if valid_acc > best_result:
                 best_result, best_epoch = valid_acc, epoch
@@ -249,7 +248,7 @@ if __name__ == "__main__":
                 }, os.path.join(model_dir, "best_model.pth")
                 )
             logger.info(
-                "--------------Best_Epoch:{:>3d}    Best_Acc:{:>5.2f}--------------".format(
+                "--------------Best_Epoch:{:>3d}    Best_Acc:{:>5.4f}--------------".format(
                     best_epoch, best_result
                 )
             )
