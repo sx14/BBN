@@ -100,6 +100,13 @@ def valid_model(
     model.eval()
     num_levels = label_map.shape[1]
     num_classes = dataLoader.dataset.get_num_classes()
+
+    l1_cls_num = label_map[:, 0].max().item() + 1
+    l2_cls_num = label_map[:, 1].max().item() + 1
+    virtual_cls_num = l1_cls_num + l2_cls_num - num_classes
+    l1_raw_cls_num = l1_cls_num - virtual_cls_num
+    l2_raw_cls_num = l2_cls_num
+
     fusion_matrix = FusionMatrix(num_classes)
     func = torch.nn.Softmax(dim=1)
     acc = AverageMeter()
@@ -139,14 +146,14 @@ def valid_model(
                 assert unrelated_class_num1 == unrelated_class_num2
                 all_probs[:, unrelated_class_num1:] *= level_prob[:, related_lcids]
 
-            l1_mask = label < 20
+            l1_mask = label < l1_raw_cls_num
             l1_scores = all_probs[l1_mask]
             l1_labels = label[l1_mask]
             l1_result = torch.argmax(l1_scores, 1)
             l1_now_acc, l1_cnt = accuracy(l1_result.cpu().numpy(), l1_labels.cpu().numpy())
             l1_acc.update(l1_now_acc, l1_cnt)
 
-            l2_mask = label >= 20
+            l2_mask = label >= l1_raw_cls_num
             l2_scores = all_probs[l2_mask]
             l2_labels = label[l2_mask]
             l2_result = torch.argmax(l2_scores, 1)
