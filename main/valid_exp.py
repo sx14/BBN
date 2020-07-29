@@ -1,5 +1,5 @@
 import _init_paths
-from net import Network1
+from net import Network1, Network2
 from config import cfg, update_config
 from dataset import *
 import numpy as np
@@ -194,7 +194,10 @@ if __name__ == "__main__":
     virtual_cls_num = l1_cls_num + l2_cls_num - num_classes
     l1_raw_cls_num = l1_cls_num - virtual_cls_num
     l2_raw_cls_num = l2_cls_num
-    model = Network1(cfg, mode="test", num_classes=[l1_cls_num, l2_cls_num])
+    if cfg.MULTI_BRANCH:
+        model = Network2(cfg, mode="test", num_classes=[l1_cls_num, l2_cls_num])
+    else:
+        model = Network1(cfg, mode="test", num_classes=[l1_cls_num, l2_cls_num])
 
     model_dir = os.path.join(cfg.OUTPUT_DIR, cfg.NAME, "models")
     model_file = cfg.TEST.MODEL_FILE
