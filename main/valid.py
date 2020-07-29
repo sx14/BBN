@@ -5,6 +5,7 @@ from dataset import *
 import numpy as np
 import torch
 import os
+import pickle
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import argparse
@@ -18,7 +19,7 @@ def parse_args():
         "--cfg",
         help="decide which cfg to use",
         required=True,
-        default="configs/cifar100_exp1.yaml",
+        default="configs/cifar100_baseline.yaml",
         type=str,
     )
     parser.add_argument(
@@ -27,14 +28,21 @@ def parse_args():
         default=None,
         nargs=argparse.REMAINDER,
     )
+
+
     parser.add_argument('--start', dest='start', default=0, type=int)
     parser.add_argument('--end', dest='end', default=19, type=int)
 
     args = parser.parse_args()
     return args
 
+
 def valid_model(dataLoader, model, cfg, device, num_classes):
     result_list = []
+
+    all_labels = []
+    all_result = []
+
     pbar = tqdm(total=len(dataLoader))
     model.eval()
     top1_count, top2_count, top3_count, index, fusion_matrix = (
@@ -56,6 +64,11 @@ def valid_model(dataLoader, model, cfg, device, num_classes):
             score_result = result.cpu().numpy()
             fusion_matrix.update(score_result.argmax(axis=1), image_labels.numpy())
             topk_result = top_k.cpu().tolist()
+
+            top1_res = [topk[0] for topk in topk_result]
+            all_labels.extend(image_labels.numpy().tolist())
+            all_result.extend(top1_res)
+
             if not "image_id" in meta:
                 meta["image_id"] = [0] * image.shape[0]
             image_ids = meta["image_id"]
@@ -84,7 +97,7 @@ def valid_model(dataLoader, model, cfg, device, num_classes):
         )
     )
 
-    return fusion_matrix
+    return fusion_matrix, all_labels, all_result
 
 
 def tor_norm(model, tor=1):
@@ -119,7 +132,7 @@ if __name__ == "__main__":
     model.load_model(model_path)
 
     # fc normalization
-    tor_norm(model)
+    # tor_norm(model)
 
     if cfg.CPU_MODE:
         model = model.to(device)
@@ -133,6 +146,15 @@ if __name__ == "__main__":
         num_workers=cfg.TEST.NUM_WORKERS,
         pin_memory=cfg.PIN_MEMORY,
     )
-    matrix = valid_model(testLoader, model, cfg, device, num_classes)
+    matrix, all_labels, all_result = valid_model(testLoader, model, cfg, device, num_classes)
     print('Pre from %d to %d: %.4f' % (args.start, args.end, matrix.get_pre_in_range(args.start, args.end)))
     print('Rec from %d to %d: %.4f' % (args.start, args.end, matrix.get_rec_in_range(args.start, args.end)))
+
+    output = {'labels': all_labels, 'result': all_result}
+    save_dir = os.path.join(cfg.OUTPUT_DIR, cfg.NAME, "analysis")
+    save_path = os.path.join(save_dir, 'label_result.bin')
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    with open(save_path, 'wb') as f:
+        pickle.dump(output, f)
+    print('Evaluation result is saved at %s' % save_path)

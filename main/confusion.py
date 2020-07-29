@@ -1,11 +1,36 @@
+import _init_paths
+from config import cfg, update_config
+import argparse
+import os
+import pickle
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
+# import seaborn as sns
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="BBN evaluation")
+
+    parser.add_argument(
+        "--cfg",
+        help="decide which cfg to use",
+        required=False,
+        default="configs/cifar100_baseline.yaml",
+        type=str,
+    )
+    parser.add_argument(
+        "opts",
+        help="Modify config options using the command-line",
+        default=None,
+        nargs=argparse.REMAINDER,
+    )
+    args = parser.parse_args()
+    return args
 
 
 def plot_confusion_matrix(cm, savename, classes, title='Confusion Matrix', show_value=False):
-    plt.figure(figsize=(12, 8), dpi=100)
+    plt.figure(figsize=(40, 30))
     np.set_printoptions(precision=2)
 
     ind_array = np.arange(len(classes))
@@ -37,45 +62,34 @@ def plot_confusion_matrix(cm, savename, classes, title='Confusion Matrix', show_
 
     # show confusion matrix
     plt.savefig(savename, format='png')
-    plt.show()
-
-
-def plot_confusion_matrix2(cm, save_path, classes, title='confusion matrix', show_value=False):
-    sns.set()
-    f, ax = plt.subplots(figsize=(50, 40))
-    if show_value:
-        sns.heatmap(cm, annot=True, ax=ax)
-    else:
-        sns.heatmap(cm, ax=ax)
-    ax.set_title(title)
-    ax.set_xlabel('predict')
-    ax.set_ylabel('true')
-    plt.savefig(save_path, format='png')
     # plt.show()
 
 
-tag = 'exp1'
-infer = 'flat'
-level = 3
-classes_dict = [13, 37, 122, 200]
-classes = [i for i in range(classes_dict[level])]
+# def plot_confusion_matrix2(cm, save_path, classes, title='confusion matrix', show_value=False):
+#     sns.set()
+#     f, ax = plt.subplots(figsize=(50, 40))
+#     if show_value:
+#         sns.heatmap(cm, annot=True, ax=ax)
+#     else:
+#         sns.heatmap(cm, ax=ax)
+#     ax.set_title(title)
+#     ax.set_xlabel('predict')
+#     ax.set_ylabel('true')
+#     plt.savefig(save_path, format='png')
+    # plt.show()
 
-res_path = 'output/tiny-imagenet-200/exp_hier/results_%s_%s.bin' % (tag, infer)
-sav_path = 'cache/CUB_200_2011/exp_hier/cm_%s_%s_%d.png' % (tag, infer, level)
 
-import pickle
+args = parse_args()
+update_config(cfg, args)
+save_dir = os.path.join(cfg.OUTPUT_DIR, cfg.NAME, "analysis")
+res_path = os.path.join(save_dir, 'label_result.bin')
+sav_path = os.path.join(save_dir, 'confusion_matrix.png')
 with open(res_path, 'rb') as f:
-    all_res = pickle.load(f)
+    res = pickle.load(f)
+labels = res['labels']
+result = res['result']
 
-preds, labels = all_res[level]
-tp_cnt = [1 for i in range(len(preds)) if preds[i] == labels[i]]
-prec = sum(tp_cnt) * 1.0 / len(preds)
-print(prec)
-# plt.hist(labels)
-# plt.show()
-
-
-cm = confusion_matrix(labels, preds)
+cm = confusion_matrix(labels, result)
 cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-# plot_confusion_matrix(cm_normalized, sav_path, classes, title='confusion matrix', show_value=False)
-plot_confusion_matrix2(cm_normalized, sav_path, classes, title='confusion matrix', show_value=True)
+plot_confusion_matrix(cm_normalized, sav_path, [str(i) for i in range(100)], title='confusion matrix', show_value=False)
+# plot_confusion_matrix2(cm_normalized, sav_path, classes, title='confusion matrix', show_value=True)

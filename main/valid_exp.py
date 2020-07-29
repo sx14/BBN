@@ -5,6 +5,7 @@ from dataset import *
 import numpy as np
 import torch
 import os
+import pickle
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import argparse
@@ -62,11 +63,15 @@ def valid_model(
     acc1 = AverageMeter()
     l1_acc1 = AverageMeter()
     l2_acc1 = AverageMeter()
+    all_labels1 = []
+    all_result1 = []
 
     # 20 + 2
     acc2 = AverageMeter()
     l1_acc2 = AverageMeter()
     l2_acc2 = AverageMeter()
+    all_labels2 = []
+    all_result2 = []
 
     with torch.no_grad():
         for i, (image, label, meta) in enumerate(dataLoader):
@@ -120,6 +125,8 @@ def valid_model(
             now_acc, cnt = accuracy(now_result.cpu().numpy(), label.cpu().numpy())
             acc1.update(now_acc, cnt)
             fusion_matrix1.update(now_result.cpu().numpy(), label.cpu().numpy())
+            all_labels1.extend(label.cpu().numpy().tolist())
+            all_result1.extend(now_result.cpu().numpy().tolist())
             # ====================================================================
 
             # ===================20 + 2 =================================
@@ -144,6 +151,8 @@ def valid_model(
             l1v_now_acc, l1v_cnt = accuracy(l1v_result.cpu().numpy(), l1v_labels.cpu().numpy())
             acc2.update(l1v_now_acc, l1v_cnt)
             fusion_matrix2.update(l1v_result.cpu().numpy(), l1v_labels.cpu().numpy())
+            all_labels2.extend(l1v_labels.cpu().numpy().tolist())
+            all_result2.extend(l1v_result.cpu().numpy().tolist())
             # ====================================================================
 
     print('Acc (head+tail): %.4f %d' % (acc1.avg, acc1.count))
@@ -154,7 +163,7 @@ def valid_model(
     print('Acc L1         : %.4f %d' % (l1_acc2.avg, l1_acc2.count))
     print('Acc Lv         : %.4f %d' % (l2_acc2.avg, l2_acc2.count))
     print('=' * 23)
-    return fusion_matrix1, fusion_matrix2
+    return fusion_matrix1, fusion_matrix2, all_labels1, all_result1, all_labels2, all_result2
 
 
 def load_label_map(cache_dir, head_ratio):
@@ -207,7 +216,7 @@ if __name__ == "__main__":
         num_workers=cfg.TEST.NUM_WORKERS,
         pin_memory=cfg.PIN_MEMORY,
     )
-    matrix1, matrix2 = valid_model(testLoader, model, device, label_map, level_label_maps)
+    matrix1, matrix2, all_labels1, all_result1, all_labels2, all_result2 = valid_model(testLoader, model, device, label_map, level_label_maps)
     print('Rec [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix1.get_rec_in_range(0, l1_raw_cls_num-1)))
     print('Pre [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix1.get_pre_in_range(0, l1_raw_cls_num-1)))
     print('Rec [%d - %d]: %.4f' % (l1_raw_cls_num, num_classes-1, matrix1.get_rec_in_range(l1_raw_cls_num, num_classes-1)))
@@ -217,3 +226,23 @@ if __name__ == "__main__":
     print('Pre [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix2.get_pre_in_range(0, l1_raw_cls_num-1)))
     print('Rec [%d - %d]: %.4f' % (l1_raw_cls_num, l1_cls_num-1, matrix2.get_rec_in_range(l1_raw_cls_num, l1_cls_num-1)))
     print('Pre [%d - %d]: %.4f' % (l1_raw_cls_num, l1_cls_num-1, matrix2.get_pre_in_range(l1_raw_cls_num, l1_cls_num-1)))
+
+    output1 = {'labels': all_labels1, 'result': all_result1}
+    output2 = {'labels': all_labels2, 'result': all_result2}
+
+    save_dir = os.path.join(cfg.OUTPUT_DIR, cfg.NAME, "analysis")
+    save_path = os.path.join(save_dir, 'label_result1.bin')
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    with open(save_path, 'wb') as f:
+        pickle.dump(output1, f)
+    print('Evaluation result is saved at %s' % save_path)
+
+    save_path = os.path.join(save_dir, 'label_result2.bin')
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    with open(save_path, 'wb') as f:
+        pickle.dump(output2, f)
+    print('Evaluation result is saved at %s' % save_path)
+
+
