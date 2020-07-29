@@ -176,7 +176,12 @@ if __name__ == "__main__":
     test_set = eval(cfg.DATASET.DATASET)("valid", cfg)
     num_classes = test_set.get_num_classes()
     device = torch.device("cpu" if cfg.CPU_MODE else "cuda")
-    model = Network1(cfg, mode="test", num_classes=[22, 80])
+    l1_cls_num = label_map[:, 0].max().item() + 1
+    l2_cls_num = label_map[:, 1].max().item() + 1
+    virtual_cls_num = l1_cls_num + l2_cls_num - num_classes
+    l1_raw_cls_num = l1_cls_num - virtual_cls_num
+    l2_raw_cls_num = l2_cls_num
+    model = Network1(cfg, mode="test", num_classes=[l1_cls_num, l2_cls_num])
 
     model_dir = os.path.join(cfg.OUTPUT_DIR, cfg.NAME, "models")
     model_file = cfg.TEST.MODEL_FILE
@@ -199,12 +204,12 @@ if __name__ == "__main__":
         pin_memory=cfg.PIN_MEMORY,
     )
     matrix1, matrix2 = valid_model(testLoader, model, device, label_map, level_label_maps)
-    print('[20+80] Rec [%d - %d]: %.4f' % (0, 19, matrix1.get_rec_in_range(0, 19)))
-    print('[20+80] Pre [%d - %d]: %.4f' % (0, 19, matrix1.get_pre_in_range(0, 19)))
-    print('[20+80] Rec [%d - %d]: %.4f' % (20, 99, matrix1.get_rec_in_range(20, 99)))
-    print('[20+80] Pre [%d - %d]: %.4f' % (20, 99, matrix1.get_pre_in_range(20, 99)))
+    print('Rec [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix1.get_rec_in_range(0, l1_raw_cls_num-1)))
+    print('Pre [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix1.get_pre_in_range(0, l1_raw_cls_num-1)))
+    print('Rec [%d - %d]: %.4f' % (l1_raw_cls_num, num_classes-1, matrix1.get_rec_in_range(l1_raw_cls_num, num_classes-1)))
+    print('Pre [%d - %d]: %.4f' % (l1_raw_cls_num, num_classes-1, matrix1.get_pre_in_range(l1_raw_cls_num, num_classes-1)))
     print('=' * 30)
-    print('[20+2v] Rec [%d - %d]: %.4f' % (0, 19, matrix2.get_rec_in_range(0, 19)))
-    print('[20+2v] Pre [%d - %d]: %.4f' % (0, 19, matrix2.get_pre_in_range(0, 19)))
-    print('[20+2v] Rec [%d - %d]: %.4f' % (20, 21, matrix2.get_rec_in_range(20, 21)))
-    print('[20+2v] Pre [%d - %d]: %.4f' % (20, 21, matrix2.get_pre_in_range(20, 21)))
+    print('Rec [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix2.get_rec_in_range(0, l1_raw_cls_num-1)))
+    print('Pre [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix2.get_pre_in_range(0, l1_raw_cls_num-1)))
+    print('Rec [%d - %d]: %.4f' % (l1_raw_cls_num, l1_cls_num-1, matrix2.get_rec_in_range(l1_raw_cls_num, l1_cls_num-1)))
+    print('Pre [%d - %d]: %.4f' % (l1_raw_cls_num, l1_cls_num-1, matrix2.get_pre_in_range(l1_raw_cls_num, l1_cls_num-1)))

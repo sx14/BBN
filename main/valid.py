@@ -27,8 +27,8 @@ def parse_args():
         default=None,
         nargs=argparse.REMAINDER,
     )
-    parser.add_argument('--start', dest='start', default=20, type=int)
-    parser.add_argument('--end', dest='end', default=99, type=int)
+    parser.add_argument('--start', dest='start', default=0, type=int)
+    parser.add_argument('--end', dest='end', default=19, type=int)
 
     args = parser.parse_args()
     return args

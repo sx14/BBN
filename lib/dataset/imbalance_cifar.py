@@ -40,6 +40,10 @@ class IMBALANCECIFAR10(torchvision.datasets.CIFAR10):
             self.class_weight, self.sum_weight = self.get_weight(self.get_annotations(), self.cls_num)
             self.class_dict = self._get_class_dict()
 
+        # import matplotlib.pyplot as plt
+        # plt.hist(self.targets)
+        # plt.show()
+
     def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
         img_max = len(self.data) / cls_num
         img_num_per_cls = []

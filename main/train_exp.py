@@ -106,7 +106,10 @@ if __name__ == "__main__":
     epoch_number = cfg.TRAIN.MAX_EPOCH
 
     # ----- BEGIN MODEL BUILDER -----
-    model = get_model(cfg, [22, 80], device, logger)
+    l1_cls_num = label_map[:, 0].max().item() + 1
+    l2_cls_num = label_map[:, 1].max().item() + 1
+
+    model = get_model(cfg, [l1_cls_num, l2_cls_num], device, logger)
     combiner = Combiner(cfg, device)
     optimizer = get_optimizer(cfg, model)
     scheduler = get_scheduler(cfg, optimizer)

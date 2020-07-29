@@ -53,12 +53,26 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
             cid_to_lcid = pickle.load(f)
         return cid_to_lcid
 
-    def convert_labels(self):
+    def convert_labels(self, show_dist=False):
         # merge tail classes
+
+        org_targets = [0] * self.cls_num
+        for target in self.targets:
+            org_targets[target] += 1
+
+        import matplotlib.pyplot as plt
+        plt.hist(self.targets, bins=self.cls_num)
+        plt.show()
         for i in range(len(self.targets)):
             target = self.targets[i]
             self.targets[i] = self.label_map[target][0]
         self.cls_num = self.label_map[:, 0].max() + 1
+
+        cvt_targets = [0] * self.cls_num
+        for target in self.targets:
+            cvt_targets[target] += 1
+        plt.hist(self.targets, bins=self.cls_num)
+        plt.show()
 
     def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
         img_max = len(self.data) / cls_num

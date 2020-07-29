@@ -120,8 +120,8 @@ if __name__ == "__main__":
         #         min_diff = abs(part1 - part2)
         #         flag = i
         # level_ranges = [[0, flag], [flag + 1, num_classes]]
-        level_ranges = [(0, int(num_classes * 0.2)),
-                        (int(num_classes * 0.2), num_classes)]
+        level_ranges = [(0, int(num_classes * 0.6)),
+                        (int(num_classes * 0.6), num_classes)]
     else:
         raise ValueError('Level num = 2 only.')
 
