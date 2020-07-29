@@ -69,14 +69,14 @@ def parse_args():
                         type=int)
     parser.add_argument('--cluster_num',
                         dest='cluster_num',
-                        default=2,
+                        default=3,
                         type=int)
 
     parser.add_argument(
         "--head-ratio",
         dest='head_ratio',
         required=False,
-        default=20,
+        default=40,
         type=int)
 
     args = parser.parse_args()

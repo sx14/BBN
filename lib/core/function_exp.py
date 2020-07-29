@@ -18,8 +18,8 @@ def train_model(
     cfg,
     logger,
     label_map,
-    **kwargs
-):
+    **kwargs):
+
     if cfg.EVAL_MODE:
         model.eval()
     else:
@@ -45,7 +45,7 @@ def train_model(
         loss = None
         for level in range(label_map.shape[1]):
             level_label = label_map[label, level]
-            level_mask = level_label > 0
+            level_mask = level_label >= 0
             level_image = image[level_mask]
             level_label = level_label[level_mask]
             level_image = level_image.cuda()
@@ -56,6 +56,7 @@ def train_model(
 
             level_res = torch.argmax(level_score, 1)
             level_acc = accuracy(level_res.cpu().numpy(), level_label.cpu().numpy())[0]
+
             if loss is None:
                 loss = level_loss
             else:
@@ -82,10 +83,6 @@ def train_model(
             batch_loss = 0
             batch_acc = [0] * label_map.shape[1]
             batch_sizes = [0] * label_map.shape[1]
-    epoch_info = ''
-    for level in range(label_map.shape[1]):
-        epoch_info += 'Level %d Acc: %.4f  ' % (level+1, all_acc[level] / all_cnt[level])
-    logger.info(epoch_info)
 
 
 def valid_model(

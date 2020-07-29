@@ -62,7 +62,7 @@ def plot_confusion_matrix(cm, savename, classes, title='Confusion Matrix', show_
 
     # show confusion matrix
     plt.savefig(savename, format='png')
-    # plt.show()
+    plt.show()
 
 
 # def plot_confusion_matrix2(cm, save_path, classes, title='confusion matrix', show_value=False):
@@ -89,7 +89,8 @@ with open(res_path, 'rb') as f:
 labels = res['labels']
 result = res['result']
 
+num_classes = max(labels) + 1
 cm = confusion_matrix(labels, result)
 cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-plot_confusion_matrix(cm_normalized, sav_path, [str(i) for i in range(100)], title='confusion matrix', show_value=False)
+plot_confusion_matrix(cm_normalized, sav_path, [str(i) for i in range(num_classes)], title='confusion matrix', show_value=False)
 # plot_confusion_matrix2(cm_normalized, sav_path, classes, title='confusion matrix', show_value=True)
