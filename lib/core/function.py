@@ -80,14 +80,14 @@ def valid_model(
             loss = criterion(output, label)
             score_result = func(output)
 
-            l1_mask = label < 20
+            l1_mask = label < cfg.HEAD_RATIO
             l1_scores = score_result[l1_mask]
             l1_labels = label[l1_mask]
             l1_result = torch.argmax(l1_scores, 1)
             l1_now_acc, l1_cnt = accuracy(l1_result.cpu().numpy(), l1_labels.cpu().numpy())
             l1_acc.update(l1_now_acc, l1_cnt)
 
-            l2_mask = label >= 20
+            l2_mask = label >= cfg.HEAD_RATIO
             l2_scores = score_result[l2_mask]
             l2_labels = label[l2_mask]
             l2_result = torch.argmax(l2_scores, 1)
