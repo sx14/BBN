@@ -112,7 +112,6 @@ class ResNet_Cifar(nn.Module):
         self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)
-
         self.apply(_weights_init)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -149,6 +148,69 @@ class ResNet_Cifar(nn.Module):
         out = self.layer2(out)
         out = self.layer3(out)
         return out
+
+
+class ResNet_Cifar_MB(nn.Module):
+    def __init__(self, block, num_blocks):
+        super(ResNet_Cifar_MB, self).__init__()
+        self.in_planes = 16
+
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
+        self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
+        in_planes = self.in_planes
+        self.layer3_1 = self._make_layer(block, 64, num_blocks[2], stride=2)
+        self.in_planes = in_planes
+        self.layer3_2 = self._make_layer(block, 64, num_blocks[2], stride=2)
+        self.apply(_weights_init)
+
+    def _make_layer(self, block, planes, num_blocks, stride):
+        strides = [stride] + [1] * (num_blocks - 1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, planes, stride))
+            self.in_planes = planes * block.expansion
+
+        return nn.Sequential(*layers)
+
+    def load_model(self, pretrain):
+        print("Loading Backbone pretrain model from {}......".format(pretrain))
+        model_dict = self.state_dict()
+        pretrain_dict = torch.load(pretrain)
+        pretrain_dict = pretrain_dict["state_dict"] if "state_dict" in pretrain_dict else pretrain_dict
+        from collections import OrderedDict
+
+        new_dict = OrderedDict()
+        for k, v in pretrain_dict.items():
+            if k.startswith("module"):
+                k = k[7:]
+            if "last_linear" not in k and "classifier" not in k and "linear" not in k and "fd" not in k:
+                k = k.replace("backbone.", "")
+                k = k.replace("fr", "layer3.4")
+                new_dict[k] = v
+            if 'layer3' in k:
+                k1 = k.replace('layer3', 'layer3_1')
+                k2 = k.replace('layer3', 'layer3_2')
+                new_dict[k1] = v
+                new_dict[k2] = v
+        model_dict.update(new_dict)
+        self.load_state_dict(model_dict)
+        print("Backbone model has been loaded......")
+
+    def forward(self, x, level, **kwargs):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.layer1(out)
+        out = self.layer2(out)
+        if level == 0:
+            out = self.layer3_1(out)
+        elif level == 1:
+            out = self.layer3_2(out)
+        else:
+            print('unsupported level!')
+            exit(-1)
+        return out
+
 
 class BBN_ResNet_Cifar(nn.Module):
     def __init__(self, block, num_blocks):
@@ -218,6 +280,19 @@ def res32_cifar(
     last_layer_stride=2,
 ):
     resnet = ResNet_Cifar(BasicBlock, [5, 5, 5])
+    if pretrain and pretrained_model != "":
+        resnet.load_model(pretrain=pretrained_model)
+    else:
+        print("Choose to train from scratch")
+    return resnet
+
+def res32_cifar_mb(
+    cfg,
+    pretrain=True,
+    pretrained_model="/data/Data/pretrain_models/resnet50-19c8e357.pth",
+    last_layer_stride=2,
+):
+    resnet = ResNet_Cifar_MB(BasicBlock, [5, 5, 5])
     if pretrain and pretrained_model != "":
         resnet.load_model(pretrain=pretrained_model)
     else:

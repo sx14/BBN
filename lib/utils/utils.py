@@ -6,6 +6,7 @@ import torch
 from utils.lr_scheduler import WarmupMultiStepLR
 from net import Network
 from net import Network1
+from net import Network2
 
 
 def create_logger(cfg):
@@ -89,8 +90,10 @@ def get_scheduler(cfg, optimizer):
 
 
 def get_model(cfg, num_classes, device, logger):
-    if isinstance(num_classes, list):
+    if isinstance(num_classes, list) and not cfg.MULTI_BRANCH:
         model = Network1(cfg, mode="train", num_classes=num_classes)
+    elif isinstance(num_classes, list) and cfg.MULTI_BRANCH:
+        model = Network2(cfg, mode="train", num_classes=num_classes)
     else:
         model = Network(cfg, mode="train", num_classes=num_classes)
 

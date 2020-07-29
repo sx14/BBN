@@ -41,7 +41,6 @@ def train_model(
     batch_acc = [0] * label_map.shape[1]
     batch_sizes = [0] * label_map.shape[1]
     for i, (image, label, meta) in enumerate(trainLoader):
-        batch_cnt += 1
 
         loss = None
         for level in range(label_map.shape[1]):
@@ -63,10 +62,11 @@ def train_model(
                 loss += level_loss
 
             batch_acc[level] += level_acc
-            batch_sizes[level] = level_label.shape[0]
+            batch_sizes[level] += level_label.shape[0]
             all_cnt[level] += level_label.shape[0]
             all_acc[level] += level_acc * level_label.shape[0]
 
+        batch_cnt += 1
         batch_loss += loss
         optimizer.zero_grad()
         loss.backward()
@@ -74,14 +74,14 @@ def train_model(
 
         if i % cfg.SHOW_STEP == 0:
             pbar_str = "Epoch:{:>3d}  Batch:{:>3d}/{}  Batch_Loss:{:>5.3f}  L1/L2:{}/{}  ".format(
-                epoch, i, number_batch, batch_loss / batch_cnt, batch_sizes[0], batch_sizes[1])
+                epoch, i, number_batch, batch_loss / batch_cnt, int(batch_sizes[0] * 1.0 / batch_cnt), int(batch_sizes[1] * 1.0 / batch_cnt))
             for level, acc in enumerate(batch_acc):
                 pbar_str += 'Level %d Acc: %.4f  ' % (level + 1, acc / batch_cnt)
             logger.info(pbar_str)
             batch_cnt = 0
             batch_loss = 0
             batch_acc = [0] * label_map.shape[1]
-
+            batch_sizes = [0] * label_map.shape[1]
     epoch_info = ''
     for level in range(label_map.shape[1]):
         epoch_info += 'Level %d Acc: %.4f  ' % (level+1, all_acc[level] / all_cnt[level])

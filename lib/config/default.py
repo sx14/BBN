@@ -10,7 +10,7 @@ _C = CN()
 
 # ----- sunx exp ----
 _C.HEAD_RATIO = 100
-
+_C.MULTI_BRANCH = False
 
 # ----- BASIC SETTINGS -----
 _C.NAME = "default"
