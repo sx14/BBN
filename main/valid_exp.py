@@ -35,6 +35,14 @@ def parse_args():
         type=str,
     )
 
+    parser.add_argument(
+        "--head-ratio",
+        dest='head_ratio',
+        required=False,
+        default=0.2,
+        type=float,
+    )
+
 
     args = parser.parse_args()
     return args
@@ -153,14 +161,14 @@ def valid_model(
     return fusion_matrix1, fusion_matrix2
 
 
-def load_label_map(cache_dir):
+def load_label_map(cache_dir, head_ratio):
     import pickle
-    save_path = os.path.join(cache_dir, 'cid_to_lcid.bin')
+    save_path = os.path.join(cache_dir, 'cid_to_lcid_%d.bin' % (100 * head_ratio))
     with open(save_path, 'rb') as f:
         label_map = pickle.load(f)
     label_map = torch.Tensor(label_map).long()
 
-    save_path = os.path.join(cache_dir, 'curr_lcid_to_next_lcid.bin')
+    save_path = os.path.join(cache_dir, 'curr_lcid_to_next_lcid_%d.bin' % (100 * head_ratio))
     with open(save_path, 'rb') as f:
         level_label_maps = pickle.load(f)
     for level in range(len(level_label_maps)):
@@ -172,7 +180,7 @@ if __name__ == "__main__":
     args = parse_args()
     update_config(cfg, args)
 
-    label_map, level_label_maps = load_label_map(args.cache_dir)
+    label_map, level_label_maps = load_label_map(args.cache_dir, args.head_ratio)
     test_set = eval(cfg.DATASET.DATASET)("valid", cfg)
     num_classes = test_set.get_num_classes()
     device = torch.device("cpu" if cfg.CPU_MODE else "cuda")
