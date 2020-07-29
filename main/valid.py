@@ -87,6 +87,20 @@ def valid_model(dataLoader, model, cfg, device, num_classes):
     return fusion_matrix
 
 
+def tor_norm(model, tor=1):
+    fc = model.classifier.state_dict()
+    fc_w = fc['weight']
+    fc_w_norm = torch.norm(fc_w, p=2, dim=1).unsqueeze(1)
+    fc_w_norm = fc_w_norm.repeat((1, fc_w.shape[1]))
+    fc_w = fc_w / torch.pow(fc_w_norm, tor)
+    fc['weight'] = fc_w
+
+    fc_b = fc['bias']
+    fc_b[:] = 0
+    fc['bias'] = fc_b
+    model.classifier.load_state_dict(fc)
+
+
 if __name__ == "__main__":
     args = parse_args()
     update_config(cfg, args)
@@ -103,6 +117,7 @@ if __name__ == "__main__":
     else:
         model_path = os.path.join(model_dir, model_file)
     model.load_model(model_path)
+    tor_norm(model)
 
     if cfg.CPU_MODE:
         model = model.to(device)
