@@ -77,6 +77,7 @@ def parse_args():
 
 
 if __name__ == "__main__":
+    head_ratio = 0.6
     args = parse_args()
     update_config(cfg, args)
     logger, log_file = create_logger(cfg)
@@ -120,8 +121,8 @@ if __name__ == "__main__":
         #         min_diff = abs(part1 - part2)
         #         flag = i
         # level_ranges = [[0, flag], [flag + 1, num_classes]]
-        level_ranges = [(0, int(num_classes * 0.6)),
-                        (int(num_classes * 0.6), num_classes)]
+        level_ranges = [(0, int(num_classes * head_ratio)),
+                        (int(num_classes * head_ratio), num_classes)]
     else:
         raise ValueError('Level num = 2 only.')
 
@@ -157,12 +158,12 @@ if __name__ == "__main__":
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-    save_path = os.path.join(args.save_dir, 'cid_to_lcid.bin')
+    save_path = os.path.join(args.save_dir, 'cid_to_lcid_%d.bin' % (100 * head_ratio))
     with open(save_path, 'wb') as f:
         pickle.dump(cid_to_lcid, f)
     print('Class map is saved at %s.' % save_path)
 
-    save_path = os.path.join(args.save_dir, 'curr_lcid_to_next_lcid.bin')
+    save_path = os.path.join(args.save_dir, 'curr_lcid_to_next_lcid_%d.bin' % (100 * head_ratio))
     with open(save_path, 'wb') as f:
         pickle.dump(curr_lcid_to_next_lcid, f)
     print('Class map is saved at %s.' % save_path)
