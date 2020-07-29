@@ -21,7 +21,7 @@ def create_logger(cfg):
     log_file = os.path.join(log_dir, log_name)
     # set up logger
     print("=> creating log {}".format(log_file))
-    head = "%(asctime)-15s %(message)s"
+    head = "%(message)s"
     logging.basicConfig(filename=str(log_file), format=head)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)

@@ -1,6 +1,6 @@
 # DESCRIPTION: 'exp2: multi-branch'
-HEAD_RATIO: 60  # %
-NAME: 'exp3.CIFAR100.res32.200epoch.60'
+HEAD_RATIO: 20  # %
+NAME: 'exp3.CIFAR100.res32.200epoch.20'
 MULTI_BRANCH: True
 OUTPUT_DIR: './output/cifar100'
 SHOW_STEP: 100
