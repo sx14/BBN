@@ -8,6 +8,10 @@ from yacs.config import CfgNode as CN
 
 _C = CN()
 
+# ----- sunx exp ----
+_C.HEAD_RATIO = 100
+
+
 # ----- BASIC SETTINGS -----
 _C.NAME = "default"
 _C.OUTPUT_DIR = "/home/cifar10/output"

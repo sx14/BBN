@@ -18,7 +18,7 @@ def parse_args():
         "--cfg",
         help="decide which cfg to use",
         required=True,
-        default="configs/cifar10.yaml",
+        default="configs/cifar100_exp1.yaml",
         type=str,
     )
     parser.add_argument(
@@ -117,6 +117,8 @@ if __name__ == "__main__":
     else:
         model_path = os.path.join(model_dir, model_file)
     model.load_model(model_path)
+
+    # fc normalization
     tor_norm(model)
 
     if cfg.CPU_MODE:

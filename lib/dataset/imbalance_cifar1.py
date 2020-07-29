@@ -48,7 +48,7 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
     def load_label_map(self):
         # class_id to level_class_id
         cifar, N = self.base_folder.split('-')[:2]
-        cid_to_lcid_path = os.path.join(self.root, '%s-%s-cache' % (cifar, N), 'cid_to_lcid.bin')
+        cid_to_lcid_path = os.path.join(self.root, '%s-%s-cache' % (cifar, N), 'cid_to_lcid_%d.bin' % self.cfg.HEAD_RATIO)
         with open(cid_to_lcid_path, 'rb') as f:
             cid_to_lcid = pickle.load(f)
         return cid_to_lcid

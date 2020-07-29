@@ -57,10 +57,10 @@ def parse_args():
     parser.add_argument(
         "--ar",
         help="decide whether to use auto resume",
-        type= ast.literal_eval,
-        dest = 'auto_resume',
+        type=ast.literal_eval,
+        dest='auto_resume',
         required=False,
-        default= False,
+        default=False,
     )
 
     parser.add_argument('--level_num',
@@ -69,15 +69,21 @@ def parse_args():
                         type=int)
     parser.add_argument('--cluster_num',
                         dest='cluster_num',
-                        default=2,
+                        default=3,
                         type=int)
+
+    parser.add_argument(
+        "--head-ratio",
+        dest='head_ratio',
+        required=False,
+        default=60,
+        type=int)
 
     args = parser.parse_args()
     return args
 
 
 if __name__ == "__main__":
-    head_ratio = 0.6
     args = parse_args()
     update_config(cfg, args)
     logger, log_file = create_logger(cfg)
@@ -85,6 +91,7 @@ if __name__ == "__main__":
     cudnn.benchmark = True
     auto_resume = args.auto_resume
 
+    head_ratio = args.head_ratio
     train_set = eval(cfg.DATASET.DATASET)("train", cfg)
     annotations = train_set.get_annotations()
     num_classes = train_set.get_num_classes()
@@ -121,8 +128,8 @@ if __name__ == "__main__":
         #         min_diff = abs(part1 - part2)
         #         flag = i
         # level_ranges = [[0, flag], [flag + 1, num_classes]]
-        level_ranges = [(0, int(num_classes * head_ratio)),
-                        (int(num_classes * head_ratio), num_classes)]
+        level_ranges = [(0, int(num_classes * head_ratio * 0.01)),
+                        (int(num_classes * head_ratio * 0.01), num_classes)]
     else:
         raise ValueError('Level num = 2 only.')
 
@@ -158,12 +165,12 @@ if __name__ == "__main__":
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-    save_path = os.path.join(args.save_dir, 'cid_to_lcid_%d.bin' % (100 * head_ratio))
+    save_path = os.path.join(args.save_dir, 'cid_to_lcid_%d.bin' % (head_ratio))
     with open(save_path, 'wb') as f:
         pickle.dump(cid_to_lcid, f)
     print('Class map is saved at %s.' % save_path)
 
-    save_path = os.path.join(args.save_dir, 'curr_lcid_to_next_lcid_%d.bin' % (100 * head_ratio))
+    save_path = os.path.join(args.save_dir, 'curr_lcid_to_next_lcid_%d.bin' % (head_ratio))
     with open(save_path, 'wb') as f:
         pickle.dump(curr_lcid_to_next_lcid, f)
     print('Class map is saved at %s.' % save_path)
