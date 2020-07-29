@@ -51,6 +51,8 @@ def valid_model(
 
     l1_cls_num = label_map[:, 0].max().item() + 1
     l2_cls_num = label_map[:, 1].max().item() + 1
+    virtual_cls_num = l1_cls_num + l2_cls_num - num_classes
+    l1_raw_cls_num = l1_cls_num - virtual_cls_num
 
     fusion_matrix1 = FusionMatrix(num_classes)
     fusion_matrix2 = FusionMatrix(l1_cls_num)
@@ -100,14 +102,14 @@ def valid_model(
                 assert unrelated_class_num1 == unrelated_class_num2
                 all_probs[:, unrelated_class_num1:] *= level_prob[:, related_lcids]
 
-            l1_mask1 = label < l1_cls_num
+            l1_mask1 = label < l1_raw_cls_num
             l1_scores1 = all_probs[l1_mask1]
             l1_labels1 = label[l1_mask1]
             l1_result1 = torch.argmax(l1_scores1, 1)
             l1_now_acc1, l1_cnt1 = accuracy(l1_result1.cpu().numpy(), l1_labels1.cpu().numpy())
             l1_acc1.update(l1_now_acc1, l1_cnt1)
 
-            l2_mask1 = label >= l1_cls_num
+            l2_mask1 = label >= l1_raw_cls_num
             l2_scores1 = all_probs[l2_mask1]
             l2_labels1 = label[l2_mask1]
             l2_result1 = torch.argmax(l2_scores1, 1)
@@ -124,14 +126,14 @@ def valid_model(
             l1v_scores = level_probs[0]
             l1v_labels = label_map[label, 0]
 
-            l1_mask2 = l1v_labels < l1_cls_num
+            l1_mask2 = l1v_labels < l1_raw_cls_num
             l1_scores2 = l1v_scores[l1_mask2]
             l1_labels2 = l1v_labels[l1_mask2]
             l1_result2 = torch.argmax(l1_scores2, 1)
             l1_now_acc2, l1_cnt2 = accuracy(l1_result2.cpu().numpy(), l1_labels2.cpu().numpy())
             l1_acc2.update(l1_now_acc2, l1_cnt2)
 
-            l2_mask2 = l1v_labels >= l1_cls_num
+            l2_mask2 = l1v_labels >= l1_raw_cls_num
             l2_scores2 = l1v_scores[l2_mask2]
             l2_labels2 = l1v_labels[l2_mask2]
             l2_result2 = torch.argmax(l2_scores2, 1)
