@@ -162,7 +162,7 @@ def valid_model(
             now_acc, cnt = accuracy(now_result.cpu().numpy(), label.cpu().numpy())
             acc.update(now_acc, cnt)
 
-        pbar_str = "------- Valid: Epoch:{:>3d}  Valid_Acc:{:>5.4f}  L1_Acc:{:>5.4f}  L2_Acc:{:>5.4f}-------".format(
+        pbar_str = "------- Valid: Epoch:{:>3d}  Valid_Acc:{:>5.4f}  P1_Acc:{:>5.4f}  P2_Acc:{:>5.4f}-------".format(
             epoch_number, acc.avg, l1_acc.avg, l2_acc.avg)
         logger.info(pbar_str)
     return acc.avg

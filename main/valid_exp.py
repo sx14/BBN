@@ -247,15 +247,31 @@ if __name__ == "__main__":
         pin_memory=cfg.PIN_MEMORY,
     )
     matrix1, matrix2, all_labels1, all_result1, all_labels2, all_result2 = valid_model(testLoader, model, device, label_map, level_label_maps)
-    print('Rec [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix1.get_rec_in_range(0, l1_raw_cls_num-1)))
-    print('Pre [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix1.get_pre_in_range(0, l1_raw_cls_num-1)))
-    print('Rec [%d - %d]: %.4f' % (l1_raw_cls_num, num_classes-1, matrix1.get_rec_in_range(l1_raw_cls_num, num_classes-1)))
-    print('Pre [%d - %d]: %.4f' % (l1_raw_cls_num, num_classes-1, matrix1.get_pre_in_range(l1_raw_cls_num, num_classes-1)))
+    head_rec = matrix1.get_rec_in_range(0, l1_raw_cls_num-1)
+    head_pre = matrix1.get_pre_in_range(0, l1_raw_cls_num-1)
+    tail_rec = matrix1.get_rec_in_range(l1_raw_cls_num, num_classes-1)
+    tail_pre = matrix1.get_pre_in_range(l1_raw_cls_num, num_classes-1)
+    print('Rec [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, head_rec))
+    print('Pre [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, head_pre))
+    print('Rec [%d - %d]: %.4f' % (l1_raw_cls_num, num_classes-1, tail_rec))
+    print('Pre [%d - %d]: %.4f' % (l1_raw_cls_num, num_classes-1, tail_pre))
+    print('Prediction ratio [%d-%d]: %f' % (
+        0, l1_raw_cls_num - 1,
+        head_rec * (l1_raw_cls_num * 1.0 / num_classes) / head_pre))
+
     print('=' * 30)
-    print('Rec [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix2.get_rec_in_range(0, l1_raw_cls_num-1)))
-    print('Pre [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, matrix2.get_pre_in_range(0, l1_raw_cls_num-1)))
-    print('Rec [%d - %d]: %.4f' % (l1_raw_cls_num, l1_cls_num-1, matrix2.get_rec_in_range(l1_raw_cls_num, l1_cls_num-1)))
-    print('Pre [%d - %d]: %.4f' % (l1_raw_cls_num, l1_cls_num-1, matrix2.get_pre_in_range(l1_raw_cls_num, l1_cls_num-1)))
+
+    head_rec = matrix2.get_rec_in_range(0, l1_raw_cls_num - 1)
+    head_pre = matrix2.get_pre_in_range(0, l1_raw_cls_num - 1)
+    tail_rec = matrix2.get_rec_in_range(l1_raw_cls_num, num_classes - 1)
+    tail_pre = matrix2.get_pre_in_range(l1_raw_cls_num, num_classes - 1)
+    print('Rec [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, head_rec))
+    print('Pre [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, head_pre))
+    print('Rec [%d - %d]: %.4f' % (l1_raw_cls_num, l1_cls_num-1, tail_rec))
+    print('Pre [%d - %d]: %.4f' % (l1_raw_cls_num, l1_cls_num-1, tail_pre))
+    print('Prediction ratio [%d-%d]: %f' % (
+        0, l1_raw_cls_num - 1,
+        head_rec * (l1_raw_cls_num * 1.0 / num_classes) / head_pre))
 
     output1 = {'labels': all_labels1, 'result': all_result1}
     output2 = {'labels': all_labels2, 'result': all_result2}
