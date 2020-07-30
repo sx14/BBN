@@ -39,6 +39,31 @@ def parse_args():
     return args
 
 
+def tor_norm(model, tor=1):
+    fc = model.classifiers.state_dict()
+    fc_w1 = fc['0.weight']
+    fc_w_norm1 = torch.norm(fc_w1, p=2, dim=1).unsqueeze(1)
+    fc_w_norm1 = fc_w_norm1.repeat((1, fc_w1.shape[1]))
+    fc_w1 = fc_w1 / torch.pow(fc_w_norm1, tor)
+    fc['0.weight'] = fc_w1
+
+    fc_w2 = fc['1.weight']
+    fc_w_norm2 = torch.norm(fc_w2, p=2, dim=1).unsqueeze(1)
+    fc_w_norm2 = fc_w_norm2.repeat((1, fc_w2.shape[1]))
+    fc_w2 = fc_w2 / torch.pow(fc_w_norm2, tor)
+    fc['1.weight'] = fc_w2
+
+    fc_b1 = fc['0.bias']
+    fc_b1[:] = 0
+    fc['0.bias'] = fc_b1
+
+    fc_b2 = fc['1.bias']
+    fc_b2[:] = 0
+    fc['1.bias'] = fc_b2
+
+    model.classifiers.load_state_dict(fc)
+
+
 def valid_model(
         dataLoader,
         model,
@@ -206,6 +231,8 @@ if __name__ == "__main__":
     else:
         model_path = os.path.join(model_dir, model_file)
     model.load_model(model_path)
+
+    # tor_norm(model)
 
     if cfg.CPU_MODE:
         model = model.to(device)

@@ -28,20 +28,35 @@ def parse_args():
         default=None,
         nargs=argparse.REMAINDER,
     )
-
+    parser.add_argument(
+        "--head-ratio",
+        dest='head_ratio',
+        required=False,
+        default=0,
+        type=int)
 
     parser.add_argument('--start', dest='start', default=0, type=int)
-    parser.add_argument('--end', dest='end', default=19, type=int)
+    parser.add_argument('--end', dest='end', default=99, type=int)
 
     args = parser.parse_args()
     return args
 
 
-def valid_model(dataLoader, model, cfg, device, num_classes):
-    result_list = []
+def load_label_map(cache_dir, head_ratio):
+    import pickle
+    save_path = os.path.join(cache_dir, 'cid_to_lcid_%d.bin' % (head_ratio))
+    with open(save_path, 'rb') as f:
+        label_map = pickle.load(f)
+    return label_map
+
+
+def valid_model(dataLoader, model, cfg, device, num_classes, label_map=None):
 
     all_labels = []
     all_result = []
+
+    if label_map is not None:
+        num_classes = label_map[:, 0].max() + 1
 
     pbar = tqdm(total=len(dataLoader))
     model.eval()
@@ -60,40 +75,31 @@ def valid_model(dataLoader, model, cfg, device, num_classes):
             image = image.to(device)
             output = model(image)
             result = func(output)
-            _, top_k = result.topk(5, 1, True, True)
-            score_result = result.cpu().numpy()
-            fusion_matrix.update(score_result.argmax(axis=1), image_labels.numpy())
-            topk_result = top_k.cpu().tolist()
+            top1_res = result.cpu().numpy().argmax(axis=1)
+            image_labels = image_labels.numpy()
 
-            top1_res = [topk[0] for topk in topk_result]
-            all_labels.extend(image_labels.numpy().tolist())
-            all_result.extend(top1_res)
+            if label_map is not None:
+                image_labels = label_map[image_labels, 0]
+                top1_res = label_map[top1_res, 0]
+
+            fusion_matrix.update(top1_res, image_labels)
+            all_labels.extend(image_labels.tolist())
+            all_result.extend(top1_res.tolist())
 
             if not "image_id" in meta:
                 meta["image_id"] = [0] * image.shape[0]
             image_ids = meta["image_id"]
             for i, image_id in enumerate(image_ids):
-                result_list.append(
-                    {
-                        "image_id": image_id,
-                        "image_label": int(image_labels[i]),
-                        "top_3": topk_result[i],
-                    }
-                )
-                top1_count += [image_labels[i] == topk_result[i][0]]
-                top2_count += [image_labels[i] in topk_result[i][0:2]]
-                top3_count += [image_labels[i] in topk_result[i][0:3]]
+                top1_count += [image_labels[i] == top1_res[i]]
                 index += 1
             now_acc = np.sum(top1_count) / index
             pbar.set_description("Now Top1:{:>5.2f}%".format(now_acc * 100))
             pbar.update(1)
     pbar.close()
     top1_acc = float(np.sum(top1_count) / len(top1_count))
-    top2_acc = float(np.sum(top2_count) / len(top1_count))
-    top3_acc = float(np.sum(top3_count) / len(top1_count))
     print(
-        "Top1:{:>5.2f}%  Top2:{:>5.2f}%  Top3:{:>5.2f}%".format(
-            top1_acc * 100, top2_acc * 100, top3_acc * 100
+        "Top1:{:>5.2f}%".format(
+            top1_acc * 100
         )
     )
 
@@ -131,6 +137,12 @@ if __name__ == "__main__":
         model_path = os.path.join(model_dir, model_file)
     model.load_model(model_path)
 
+    head_ratio = args.head_ratio
+    label_map = None
+    if head_ratio > 0:
+        cache_dir = 'datasets/imbalance_cifar10/cifar-100-cache'
+        label_map = load_label_map(cache_dir, head_ratio)
+
     # fc normalization
     # tor_norm(model)
 
@@ -146,7 +158,7 @@ if __name__ == "__main__":
         num_workers=cfg.TEST.NUM_WORKERS,
         pin_memory=cfg.PIN_MEMORY,
     )
-    matrix, all_labels, all_result = valid_model(testLoader, model, cfg, device, num_classes)
+    matrix, all_labels, all_result = valid_model(testLoader, model, cfg, device, num_classes, label_map=label_map)
     print('Pre from %d to %d: %.4f' % (args.start, args.end, matrix.get_pre_in_range(args.start, args.end)))
     print('Rec from %d to %d: %.4f' % (args.start, args.end, matrix.get_rec_in_range(args.start, args.end)))
 

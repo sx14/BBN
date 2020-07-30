@@ -9,6 +9,14 @@ import numpy as np
 # import seaborn as sns
 
 
+def load_label_map(cache_dir, head_ratio):
+    import pickle
+    save_path = os.path.join(cache_dir, 'cid_to_lcid_%d.bin' % (head_ratio))
+    with open(save_path, 'rb') as f:
+        label_map = pickle.load(f)
+    return label_map
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="BBN evaluation")
 
@@ -40,7 +48,7 @@ def plot_confusion_matrix(cm, savename, classes, title='Confusion Matrix', show_
         for x_val, y_val in zip(x.flatten(), y.flatten()):
             c = cm[y_val][x_val]
             if c > 0.001:
-                plt.text(x_val, y_val, "%0.2f" % (c,), color='red', fontsize=15, va='center', ha='center')
+                plt.text(x_val, y_val, "%0.2f" % (c,), color='red', fontsize=10, va='center', ha='center')
 
     plt.imshow(cm, interpolation='nearest', cmap=plt.cm.binary)
     plt.title(title)
@@ -78,6 +86,13 @@ def plot_confusion_matrix(cm, savename, classes, title='Confusion Matrix', show_
 #     plt.savefig(save_path, format='png')
     # plt.show()
 
+# def convert_label_and_result(label_map, labels, result):
+#     return label_map[labels, 0].tolist(), label_map[result, 0].tolist()
+
+
+# head_ratio = 60
+# cache_dir = 'datasets/imbalance_cifar10/cifar-100-cache'
+# label_map = load_label_map(cache_dir, head_ratio)
 
 args = parse_args()
 update_config(cfg, args)
@@ -88,6 +103,8 @@ with open(res_path, 'rb') as f:
     res = pickle.load(f)
 labels = res['labels']
 result = res['result']
+
+# labels, result = convert_label_and_result(label_map, labels, result)
 
 num_classes = max(labels) + 1
 cm = confusion_matrix(labels, result)
