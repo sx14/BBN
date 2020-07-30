@@ -42,9 +42,9 @@ def parse_args():
     return args
 
 
-def load_label_map(cache_dir, head_ratio):
+def load_label_map(cache_dir, head_ratio, cluster_num):
     import pickle
-    save_path = os.path.join(cache_dir, 'cid_to_lcid_%d.bin' % (head_ratio))
+    save_path = os.path.join(cache_dir, 'cid_to_lcid_%d_%d.bin' % (head_ratio, cluster_num))
     with open(save_path, 'rb') as f:
         label_map = pickle.load(f)
     return label_map
@@ -143,10 +143,11 @@ if __name__ == "__main__":
     model.load_model(model_path)
 
     head_ratio = args.head_ratio
+    cluster_num = args.cluster_num
     label_map = None
-    if head_ratio > 0:
+    if head_ratio > 0 and cluster_num > 0:
         cache_dir = 'datasets/imbalance_cifar10/cifar-100-cache'
-        label_map = load_label_map(cache_dir, head_ratio)
+        label_map = load_label_map(cache_dir, head_ratio, cluster_num)
 
     # fc normalization
     tor_norm(model)

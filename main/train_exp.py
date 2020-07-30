@@ -62,14 +62,14 @@ def parse_args():
     return args
 
 
-def load_label_map(cache_dir, head_ratio):
+def load_label_map(cache_dir, head_ratio, cluster_num):
     import pickle
-    save_path = os.path.join(cache_dir, 'cid_to_lcid_%d.bin' % (head_ratio))
+    save_path = os.path.join(cache_dir, 'cid_to_lcid_%d_%d.bin' % (head_ratio, cluster_num))
     with open(save_path, 'rb') as f:
         label_map = pickle.load(f)
     label_map = torch.Tensor(label_map).long()
 
-    save_path = os.path.join(cache_dir, 'curr_lcid_to_next_lcid_%d.bin' % (head_ratio))
+    save_path = os.path.join(cache_dir, 'curr_lcid_to_next_lcid_%d_%d.bin' % (head_ratio, cluster_num))
     with open(save_path, 'rb') as f:
         level_label_maps = pickle.load(f)
     for level in range(len(level_label_maps)):
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     cudnn.benchmark = True
     auto_resume = args.auto_resume
 
-    label_map, level_label_maps = load_label_map(args.cache_dir, cfg.HEAD_RATIO)
+    label_map, level_label_maps = load_label_map(args.cache_dir, cfg.HEAD_RATIO, cfg.CLUSTER_NUM)
     train_set = eval(cfg.DATASET.DATASET)("train", cfg)
     valid_set = eval(cfg.DATASET.DATASET)("valid", cfg)
 

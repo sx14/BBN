@@ -196,14 +196,14 @@ def valid_model(
     return fusion_matrix1, fusion_matrix2, all_labels1, all_result1, all_labels2, all_result2
 
 
-def load_label_map(cache_dir, head_ratio):
+def load_label_map(cache_dir, head_ratio, cluster_num):
     import pickle
-    save_path = os.path.join(cache_dir, 'cid_to_lcid_%d.bin' % (head_ratio))
+    save_path = os.path.join(cache_dir, 'cid_to_lcid_%d_%d.bin' % (head_ratio, cluster_num))
     with open(save_path, 'rb') as f:
         label_map = pickle.load(f)
     label_map = torch.Tensor(label_map).long()
 
-    save_path = os.path.join(cache_dir, 'curr_lcid_to_next_lcid_%d.bin' % (head_ratio))
+    save_path = os.path.join(cache_dir, 'curr_lcid_to_next_lcid_%d_%d.bin' % (head_ratio, cluster_num))
     with open(save_path, 'rb') as f:
         level_label_maps = pickle.load(f)
     for level in range(len(level_label_maps)):
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     args = parse_args()
     update_config(cfg, args)
 
-    label_map, level_label_maps = load_label_map(args.cache_dir, cfg.HEAD_RATIO)
+    label_map, level_label_maps = load_label_map(args.cache_dir, cfg.HEAD_RATIO, cfg.CLUSTER_NUM)
     test_set = eval(cfg.DATASET.DATASET)("valid", cfg)
     num_classes = test_set.get_num_classes()
     device = torch.device("cpu" if cfg.CPU_MODE else "cuda")
@@ -237,7 +237,7 @@ if __name__ == "__main__":
         model_path = os.path.join(model_dir, model_file)
     model.load_model(model_path)
 
-    tor_norm(model)
+    # tor_norm(model)
 
     if cfg.CPU_MODE:
         model = model.to(device)
