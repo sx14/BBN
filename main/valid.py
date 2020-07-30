@@ -18,8 +18,8 @@ def parse_args():
     parser.add_argument(
         "--cfg",
         help="decide which cfg to use",
-        required=True,
-        default="configs/cifar100_baseline.yaml",
+        required=False,
+        default="configs/cifar100_exp1.yaml",
         type=str,
     )
     parser.add_argument(
@@ -36,7 +36,7 @@ def parse_args():
         type=int)
 
     parser.add_argument('--start', dest='start', default=0, type=int)
-    parser.add_argument('--end', dest='end', default=99, type=int)
+    parser.add_argument('--end', dest='end', default=21, type=int)
 
     args = parser.parse_args()
     return args
@@ -110,14 +110,19 @@ def tor_norm(model, tor=1):
     fc = model.classifier.state_dict()
     fc_w = fc['weight']
     fc_w_norm = torch.norm(fc_w, p=2, dim=1).unsqueeze(1)
-    fc_w_norm = fc_w_norm.repeat((1, fc_w.shape[1]))
-    fc_w = fc_w / torch.pow(fc_w_norm, tor)
+    fc_w_norm_rep = fc_w_norm.repeat((1, fc_w.shape[1]))
+    fc_w = fc_w / torch.pow(fc_w_norm_rep, tor)
     fc['weight'] = fc_w
 
     fc_b = fc['bias']
     fc_b[:] = 0
     fc['bias'] = fc_b
     model.classifier.load_state_dict(fc)
+
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot([i for i in range(fc_w.shape[0])], [fc_w_norm[i, 0].item() for i in range(fc_w.shape[0])])
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -144,7 +149,7 @@ if __name__ == "__main__":
         label_map = load_label_map(cache_dir, head_ratio)
 
     # fc normalization
-    # tor_norm(model)
+    tor_norm(model)
 
     if cfg.CPU_MODE:
         model = model.to(device)

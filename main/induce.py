@@ -165,12 +165,12 @@ if __name__ == "__main__":
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
 
-    save_path = os.path.join(args.save_dir, 'cid_to_lcid_%d.bin' % (head_ratio))
+    save_path = os.path.join(args.save_dir, 'cid_to_lcid_%d_%d.bin' % (head_ratio, args.cluster_num))
     with open(save_path, 'wb') as f:
         pickle.dump(cid_to_lcid, f)
     print('Class map is saved at %s.' % save_path)
 
-    save_path = os.path.join(args.save_dir, 'curr_lcid_to_next_lcid_%d.bin' % (head_ratio))
+    save_path = os.path.join(args.save_dir, 'curr_lcid_to_next_lcid_%d_%d.bin' % (head_ratio, args.cluster_num))
     with open(save_path, 'wb') as f:
         pickle.dump(curr_lcid_to_next_lcid, f)
     print('Class map is saved at %s.' % save_path)

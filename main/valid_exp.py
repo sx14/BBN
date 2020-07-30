@@ -43,14 +43,14 @@ def tor_norm(model, tor=1):
     fc = model.classifiers.state_dict()
     fc_w1 = fc['0.weight']
     fc_w_norm1 = torch.norm(fc_w1, p=2, dim=1).unsqueeze(1)
-    fc_w_norm1 = fc_w_norm1.repeat((1, fc_w1.shape[1]))
-    fc_w1 = fc_w1 / torch.pow(fc_w_norm1, tor)
+    fc_w_norm1_rep = fc_w_norm1.repeat((1, fc_w1.shape[1]))
+    fc_w1 = fc_w1 / torch.pow(fc_w_norm1_rep, tor)
     fc['0.weight'] = fc_w1
 
     fc_w2 = fc['1.weight']
     fc_w_norm2 = torch.norm(fc_w2, p=2, dim=1).unsqueeze(1)
-    fc_w_norm2 = fc_w_norm2.repeat((1, fc_w2.shape[1]))
-    fc_w2 = fc_w2 / torch.pow(fc_w_norm2, tor)
+    fc_w_norm2_rep = fc_w_norm2.repeat((1, fc_w2.shape[1]))
+    fc_w2 = fc_w2 / torch.pow(fc_w_norm2_rep, tor)
     fc['1.weight'] = fc_w2
 
     fc_b1 = fc['0.bias']
@@ -62,6 +62,11 @@ def tor_norm(model, tor=1):
     fc['1.bias'] = fc_b2
 
     model.classifiers.load_state_dict(fc)
+
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot([i for i in range(fc_w_norm1.shape[0])], [fc_w_norm1[i, 0].item() for i in range(fc_w_norm1.shape[0])])
+    plt.show()
 
 
 def valid_model(
@@ -232,7 +237,7 @@ if __name__ == "__main__":
         model_path = os.path.join(model_dir, model_file)
     model.load_model(model_path)
 
-    # tor_norm(model)
+    tor_norm(model)
 
     if cfg.CPU_MODE:
         model = model.to(device)
@@ -261,10 +266,10 @@ if __name__ == "__main__":
 
     print('=' * 30)
 
-    head_rec = matrix2.get_rec_in_range(0, l1_raw_cls_num - 1)
-    head_pre = matrix2.get_pre_in_range(0, l1_raw_cls_num - 1)
-    tail_rec = matrix2.get_rec_in_range(l1_raw_cls_num, num_classes - 1)
-    tail_pre = matrix2.get_pre_in_range(l1_raw_cls_num, num_classes - 1)
+    head_rec = matrix2.get_rec_in_range(0, l1_raw_cls_num-1)
+    head_pre = matrix2.get_pre_in_range(0, l1_raw_cls_num-1)
+    tail_rec = matrix2.get_rec_in_range(l1_raw_cls_num, l1_cls_num-1)
+    tail_pre = matrix2.get_pre_in_range(l1_raw_cls_num, l1_cls_num-1)
     print('Rec [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, head_rec))
     print('Pre [%d - %d]: %.4f' % (0, l1_raw_cls_num-1, head_pre))
     print('Rec [%d - %d]: %.4f' % (l1_raw_cls_num, l1_cls_num-1, tail_rec))

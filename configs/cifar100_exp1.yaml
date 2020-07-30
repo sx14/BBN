@@ -1,6 +1,7 @@
 # DESCRIPTION: 'exp1: merge tail classes as virtual head classes, train on single-level data (head+virtual head)'
-HEAD_RATIO: 20  # %
-NAME: 'exp1.CIFAR100.res32.200epoch.20'
+HEAD_RATIO: 40  # %
+CLUSTER_NUM: 4  # %
+NAME: 'exp1.CIFAR100.res32.200epoch.40.4'
 OUTPUT_DIR: './output/cifar100'
 SHOW_STEP: 100
 SAVE_STEP: 5
