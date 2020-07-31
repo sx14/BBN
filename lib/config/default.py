@@ -9,7 +9,7 @@ from yacs.config import CfgNode as CN
 _C = CN()
 
 # ----- sunx exp ----
-_C.HEAD_RATIO = 100
+_C.HEAD_RATIO = 0
 _C.CLUSTER_NUM = 0
 _C.MULTI_BRANCH = False
 

@@ -91,15 +91,16 @@ def valid_model(
 
     # 20 + 80
     acc1 = AverageMeter()
-    l1_acc1 = AverageMeter()
-    l2_acc1 = AverageMeter()
+    p1_acc1 = AverageMeter()
+    p2_acc1 = AverageMeter()
+    level_accs = [AverageMeter() for _ in range(num_levels)]
     all_labels1 = []
     all_result1 = []
 
     # 20 + 2
     acc2 = AverageMeter()
-    l1_acc2 = AverageMeter()
-    l2_acc2 = AverageMeter()
+    p1_acc2 = AverageMeter()
+    p2_acc2 = AverageMeter()
     all_labels2 = []
     all_result2 = []
 
@@ -111,8 +112,18 @@ def valid_model(
             level_scores = []
             level_probs = []
             for level in range(num_levels):
+
                 level_score = model(image, level)
                 level_scores.append(level_score)
+
+                # for each level
+                level_label = label_map[label, level]
+                level_mask = level_label >= 0
+                level_label1 = level_label[level_mask]
+                level_score1 = level_score[level_mask]
+                level_top1 = torch.argmax(level_score1, 1)
+                level_acc1, level_cnt1 = accuracy(level_top1.cpu().numpy(), level_label1.cpu().numpy())
+                level_accs[level].update(level_acc1, level_cnt1)
 
                 if level == 0:
                     level_prob = func(level_score)
@@ -142,14 +153,14 @@ def valid_model(
             l1_labels1 = label[l1_mask1]
             l1_result1 = torch.argmax(l1_scores1, 1)
             l1_now_acc1, l1_cnt1 = accuracy(l1_result1.cpu().numpy(), l1_labels1.cpu().numpy())
-            l1_acc1.update(l1_now_acc1, l1_cnt1)
+            p1_acc1.update(l1_now_acc1, l1_cnt1)
 
             l2_mask1 = label >= l1_raw_cls_num
             l2_scores1 = all_probs[l2_mask1]
             l2_labels1 = label[l2_mask1]
             l2_result1 = torch.argmax(l2_scores1, 1)
             l2_now_acc1, l2_cnt1 = accuracy(l2_result1.cpu().numpy(), l2_labels1.cpu().numpy())
-            l2_acc1.update(l2_now_acc1, l2_cnt1)
+            p2_acc1.update(l2_now_acc1, l2_cnt1)
 
             now_result = torch.argmax(all_probs, 1)
             now_acc, cnt = accuracy(now_result.cpu().numpy(), label.cpu().numpy())
@@ -168,14 +179,14 @@ def valid_model(
             l1_labels2 = l1v_labels[l1_mask2]
             l1_result2 = torch.argmax(l1_scores2, 1)
             l1_now_acc2, l1_cnt2 = accuracy(l1_result2.cpu().numpy(), l1_labels2.cpu().numpy())
-            l1_acc2.update(l1_now_acc2, l1_cnt2)
+            p1_acc2.update(l1_now_acc2, l1_cnt2)
 
             l2_mask2 = l1v_labels >= l1_raw_cls_num
             l2_scores2 = l1v_scores[l2_mask2]
             l2_labels2 = l1v_labels[l2_mask2]
             l2_result2 = torch.argmax(l2_scores2, 1)
             l2_now_acc2, l2_cnt2 = accuracy(l2_result2.cpu().numpy(), l2_labels2.cpu().numpy())
-            l2_acc2.update(l2_now_acc2, l2_cnt2)
+            p2_acc2.update(l2_now_acc2, l2_cnt2)
 
             l1v_result = torch.argmax(l1v_scores, 1)
             l1v_now_acc, l1v_cnt = accuracy(l1v_result.cpu().numpy(), l1v_labels.cpu().numpy())
@@ -186,12 +197,14 @@ def valid_model(
             # ====================================================================
 
     print('Acc (head+tail): %.4f %d' % (acc1.avg, acc1.count))
-    print('Acc L1         : %.4f %d' % (l1_acc1.avg, l1_acc1.count))
-    print('Acc L2         : %.4f %d' % (l2_acc1.avg, l2_acc1.count))
+    print('Acc P1         : %.4f %d' % (p1_acc1.avg, p1_acc1.count))
+    print('Acc P2         : %.4f %d' % (p2_acc1.avg, p2_acc1.count))
+    print('Acc L1         : %.4f %d' % (level_accs[0].avg, level_accs[0].count))
+    print('Acc L2         : %.4f %d' % (level_accs[1].avg, level_accs[1].count))
     print('=' * 23)
     print('Acc (head+v)   : %.4f %d' % (acc2.avg, acc2.count))
-    print('Acc L1         : %.4f %d' % (l1_acc2.avg, l1_acc2.count))
-    print('Acc Lv         : %.4f %d' % (l2_acc2.avg, l2_acc2.count))
+    print('Acc P1         : %.4f %d' % (p1_acc2.avg, p1_acc2.count))
+    print('Acc Pv         : %.4f %d' % (p2_acc2.avg, p2_acc2.count))
     print('=' * 23)
     return fusion_matrix1, fusion_matrix2, all_labels1, all_result1, all_labels2, all_result2
 

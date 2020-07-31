@@ -69,7 +69,7 @@ def parse_args():
                         type=int)
     parser.add_argument('--cluster_num',
                         dest='cluster_num',
-                        default=3,
+                        default=1,
                         type=int)
 
     parser.add_argument(

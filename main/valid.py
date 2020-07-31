@@ -19,7 +19,7 @@ def parse_args():
         "--cfg",
         help="decide which cfg to use",
         required=False,
-        default="configs/cifar100_exp1.yaml",
+        default="configs/cifar100_baseline.yaml",
         type=str,
     )
     parser.add_argument(
@@ -75,8 +75,14 @@ def valid_model(dataLoader, model, cfg, device, num_classes, label_map=None):
             image = image.to(device)
             output = model(image)
             result = func(output)
+
+            # mask = image_labels >= 20
+            # image_labels = image_labels[mask] - 20
+            # result = result[mask, 20:]
+
             top1_res = result.cpu().numpy().argmax(axis=1)
             image_labels = image_labels.numpy()
+
 
             if label_map is not None:
                 image_labels = label_map[image_labels, 0]
@@ -86,10 +92,7 @@ def valid_model(dataLoader, model, cfg, device, num_classes, label_map=None):
             all_labels.extend(image_labels.tolist())
             all_result.extend(top1_res.tolist())
 
-            if not "image_id" in meta:
-                meta["image_id"] = [0] * image.shape[0]
-            image_ids = meta["image_id"]
-            for i, image_id in enumerate(image_ids):
+            for i in range(image_labels.shape[0]):
                 top1_count += [image_labels[i] == top1_res[i]]
                 index += 1
             now_acc = np.sum(top1_count) / index
@@ -119,10 +122,10 @@ def tor_norm(model, tor=1):
     fc['bias'] = fc_b
     model.classifier.load_state_dict(fc)
 
-    import matplotlib.pyplot as plt
-    plt.figure()
-    plt.plot([i for i in range(fc_w.shape[0])], [fc_w_norm[i, 0].item() for i in range(fc_w.shape[0])])
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.plot([i for i in range(fc_w.shape[0])], [fc_w_norm[i, 0].item() for i in range(fc_w.shape[0])])
+    # plt.show()
 
 
 if __name__ == "__main__":
@@ -142,15 +145,15 @@ if __name__ == "__main__":
         model_path = os.path.join(model_dir, model_file)
     model.load_model(model_path)
 
-    head_ratio = args.head_ratio
-    cluster_num = args.cluster_num
+    head_ratio = cfg.HEAD_RATIO
+    cluster_num = cfg.CLUSTER_NUM
     label_map = None
     if head_ratio > 0 and cluster_num > 0:
         cache_dir = 'datasets/imbalance_cifar10/cifar-100-cache'
         label_map = load_label_map(cache_dir, head_ratio, cluster_num)
 
     # fc normalization
-    tor_norm(model)
+    # tor_norm(model)
 
     if cfg.CPU_MODE:
         model = model.to(device)
