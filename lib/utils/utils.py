@@ -90,12 +90,18 @@ def get_scheduler(cfg, optimizer):
 
 
 def get_model(cfg, num_classes, device, logger):
-    if isinstance(num_classes, list) and not cfg.MULTI_BRANCH:
-        model = Network1(cfg, mode="train", num_classes=num_classes)
-    elif isinstance(num_classes, list) and cfg.MULTI_BRANCH:
-        model = Network2(cfg, mode="train", num_classes=num_classes)
+    if 'decouple' in cfg.NAME:
+        if cfg.TRAIN_STAGE == 1:
+            model = Network1(cfg, mode="train", num_classes=num_classes)
+        else:
+            model = Network(cfg, mode="train", num_classes=num_classes)
     else:
-        model = Network(cfg, mode="train", num_classes=num_classes)
+        if isinstance(num_classes, list) and not cfg.MULTI_BRANCH:
+            model = Network1(cfg, mode="train", num_classes=num_classes)
+        elif isinstance(num_classes, list) and cfg.MULTI_BRANCH:
+            model = Network2(cfg, mode="train", num_classes=num_classes)
+        else:
+            model = Network(cfg, mode="train", num_classes=num_classes)
 
     if cfg.BACKBONE.FREEZE == True:
         model.freeze_backbone()
@@ -107,6 +113,7 @@ def get_model(cfg, num_classes, device, logger):
         model = torch.nn.DataParallel(model).cuda()
 
     return model
+
 
 def get_category_list(annotations, num_classes, cfg):
     num_list = [0] * num_classes

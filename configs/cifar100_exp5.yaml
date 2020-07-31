@@ -1,10 +1,10 @@
 # DESCRIPTION: 'exp2: multi-branch'
 HEAD_RATIO: 20  # %
 CLUSTER_NUM: 2
-NAME: 'exp3.CIFAR100.res32.200epoch.20.2'
-MULTI_BRANCH: True
+TRAIN_STAGE: 1
+NAME: 'exp2.CIFAR100.res32.200epoch.20.2.decouple'
 OUTPUT_DIR: './output/cifar100'
-SHOW_STEP: 100
+SHOW_STEP: 1
 SAVE_STEP: 5
 VALID_STEP: 1
 INPUT_SIZE: (32, 32)
@@ -18,7 +18,8 @@ DATASET:
     RATIO: 0.02
 
 BACKBONE:
-  TYPE: 'res32_cifar_mb'
+  TYPE: 'res32_cifar'
+  FREEZE: False
 
 MODULE:
   TYPE: 'GAP'
@@ -59,7 +60,7 @@ TRANSFORMS:
   TEST_TRANSFORMS: ()
 
 TEST:
-  BATCH_SIZE: 64
+  BATCH_SIZE: 256
   NUM_WORKERS: 8
   MODEL_FILE: 'best_model.pth'
 

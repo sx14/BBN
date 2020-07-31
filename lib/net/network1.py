@@ -58,6 +58,11 @@ class Network1(nn.Module):
         for p in self.backbone.parameters():
             p.requires_grad = False
 
+    def freeze_classifer(self, id):
+        classifer = self.classifiers[id]
+        for p in classifer.parameters():
+            p.requires_grad = False
+
 
     def load_backbone_model(self, backbone_path=""):
         self.backbone.load_model(backbone_path)

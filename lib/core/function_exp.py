@@ -18,6 +18,7 @@ def train_model(
     cfg,
     logger,
     label_map,
+    stage=0,
     **kwargs):
 
     if cfg.EVAL_MODE:
@@ -66,7 +67,13 @@ def train_model(
 
         for level, level_loss in enumerate(level_loss_list):
             batch_level_loss[level] += level_loss
-        loss = sum(level_loss_list)
+
+        if stage == 1:
+            loss = level_loss_list[0]
+        elif stage == 2:
+            loss = level_loss_list[1]
+        else:
+            loss = sum(level_loss_list)
         batch_cnt += 1
         batch_loss += loss
         optimizer.zero_grad()
@@ -98,7 +105,8 @@ def valid_model(
         logger,
         device,
         label_map,
-        level_label_maps):
+        level_label_maps,
+        stage=0):
 
     model.eval()
     num_levels = label_map.shape[1]
@@ -148,6 +156,10 @@ def valid_model(
                 unrelated_class_num2 = label_map.shape[0] - related_lcids.shape[0]
                 assert unrelated_class_num1 == unrelated_class_num2
                 all_probs[:, unrelated_class_num1:] *= level_prob[:, related_lcids]
+
+            if stage == 1:
+                all_probs = level_probs[0]
+                label = label_map[label, 0]
 
             l1_mask = label < l1_raw_cls_num
             l1_scores = all_probs[l1_mask]
