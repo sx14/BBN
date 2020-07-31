@@ -52,6 +52,14 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--pretrained_path",
+        dest='pretrained_path',
+        required=False,
+        default="output/cifar100/CIFAR100.res32.200epoch/models/best_model.pth",
+        type=str,
+    )
+
+    parser.add_argument(
         "opts",
         help="modify config options using the command-line",
         default=None,
@@ -77,7 +85,7 @@ def load_label_map(cache_dir, head_ratio, cluster_num):
     return label_map, level_label_maps
 
 
-def load_last_stage(model, weight_path):
+def load_weight(model, weight_path):
     checkpoint = torch.load(weight_path)
     pre_state_dict = checkpoint['state_dict']
     mod_state_dict = model.state_dict()
@@ -126,10 +134,13 @@ if __name__ == "__main__":
     model = get_model(cfg, [l1_cls_num, l2_cls_num], device, logger)
     if cfg.TRAIN_STAGE == 2:
         last_stage_weight_path = os.path.join(model_dir, 'best_model_stage1.pth')
-        load_last_stage(model, last_stage_weight_path)
+        load_weight(model, last_stage_weight_path)
         model.module.freeze_backbone()
         model.module.freeze_classifer(0)
     elif cfg.TRAIN_STAGE == 1:
+        last_stage_weight_path = os.path.join(args.pretrained_path)
+        load_weight(model, last_stage_weight_path)
+        model.module.freeze_backbone()
         model.module.freeze_classifer(1)
 
     # load_pretrained_weight(model, args.pretrained_path)

@@ -48,7 +48,10 @@ def train_model(
         for level in range(label_map.shape[1]):
 
             if stage == 1 and level == 1:
-                break
+                continue
+
+            if stage == 2 and level == 0:
+                continue
 
             level_label = label_map[label, level]
             level_mask = level_label >= 0

@@ -2,7 +2,7 @@
 HEAD_RATIO: 20  # %
 CLUSTER_NUM: 2
 TRAIN_STAGE: 1
-NAME: 'exp2.CIFAR100.res32.200epoch.20.2.decouple'
+NAME: 'exp5.CIFAR100.res32.200epoch.20.2.decouple'
 OUTPUT_DIR: './output/cifar100'
 SHOW_STEP: 1
 SAVE_STEP: 5
