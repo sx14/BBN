@@ -44,8 +44,12 @@ def train_model(
     batch_sizes = [0] * label_map.shape[1]
     for i, (image, label, meta) in enumerate(trainLoader):
 
-        level_loss_list = [None] * label_map.shape[1]
+        level_loss_list = [0] * label_map.shape[1]
         for level in range(label_map.shape[1]):
+
+            if stage == 1 and level == 1:
+                break
+
             level_label = label_map[label, level]
             level_mask = level_label >= 0
             level_image = image[level_mask]
