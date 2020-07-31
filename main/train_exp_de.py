@@ -31,7 +31,7 @@ def parse_args():
         "--cfg",
         help="decide which cfg to use",
         required=False,
-        default="configs/cifar100_exp4.yaml",
+        default="configs/cifar100_exp5.yaml",
         type=str,
     )
 
@@ -129,7 +129,6 @@ if __name__ == "__main__":
         last_stage_weight_path = os.path.join(model_dir, 'best_model_stage1.pth')
         load_last_stage(model, last_stage_weight_path)
         model.module.freeze_backbone()
-        model.module.freeze_classifer(0)
 
     # load_pretrained_weight(model, args.pretrained_path)
     combiner = Combiner(cfg, device)

@@ -44,43 +44,48 @@ def train_model(
     batch_sizes = [0] * label_map.shape[1]
     for i, (image, label, meta) in enumerate(trainLoader):
 
-        level_loss_list = [0] * label_map.shape[1]
-        for level in range(label_map.shape[1]):
+        if stage == 1 or stage==0:
+            level_loss_list = [0] * label_map.shape[1]
+            for level in range(label_map.shape[1]):
 
-            if stage == 1 and level == 1:
-                continue
+                # if stage == 1 and level == 1:
+                #     continue
+                #
+                # if stage == 2 and level == 0:
+                #     continue
 
-            if stage == 2 and level == 0:
-                continue
+                level_label = label_map[label, level]
+                level_mask = level_label >= 0
+                level_image = image[level_mask]
+                level_label = level_label[level_mask]
+                level_image = level_image.cuda()
+                level_label = level_label.cuda()
 
-            level_label = label_map[label, level]
-            level_mask = level_label >= 0
-            level_image = image[level_mask]
-            level_label = level_label[level_mask]
-            level_image = level_image.cuda()
-            level_label = level_label.cuda()
+                level_score = model(level_image, level)
+                level_loss = criterion(level_score, level_label)
 
-            level_score = model(level_image, level)
-            level_loss = criterion(level_score, level_label)
+                level_res = torch.argmax(level_score, 1)
+                level_acc = accuracy(level_res.cpu().numpy(), level_label.cpu().numpy())[0]
+                level_loss_list[level] = level_loss
 
-            level_res = torch.argmax(level_score, 1)
-            level_acc = accuracy(level_res.cpu().numpy(), level_label.cpu().numpy())[0]
-            level_loss_list[level] = level_loss
+                batch_acc[level] += level_acc
+                batch_sizes[level] += level_label.shape[0]
+                all_cnt[level] += level_label.shape[0]
+                all_acc[level] += level_acc * level_label.shape[0]
 
-            batch_acc[level] += level_acc
-            batch_sizes[level] += level_label.shape[0]
-            all_cnt[level] += level_label.shape[0]
-            all_acc[level] += level_acc * level_label.shape[0]
+            for level, level_loss in enumerate(level_loss_list):
+                batch_level_loss[level] += level_loss
 
-        for level, level_loss in enumerate(level_loss_list):
-            batch_level_loss[level] += level_loss
-
-        if stage == 1:
-            loss = level_loss_list[0]
-        elif stage == 2:
-            loss = level_loss_list[1]
-        else:
             loss = sum(level_loss_list)
+
+        elif stage == 2:
+            image = image.cuda()
+            label = label.cuda()
+            scores = model(image)
+            loss = criterion(scores, label)
+            result = torch.argmax(scores, 1)
+            acc = accuracy(result.cpu().numpy(), label.cpu().numpy())[0]
+
         batch_cnt += 1
         batch_loss += loss
         optimizer.zero_grad()
@@ -136,37 +141,46 @@ def valid_model(
             image, label = image.to(device), label.to(device)
 
             batch_size = label.shape[0]
-            level_scores = []
-            level_probs = []
-            for level in range(num_levels):
-                level_score = model(image, level)
-                level_scores.append(level_score)
 
-                if level == 0:
-                    level_prob = func(level_score)
-                    level_probs.append(level_prob)
-                else:
-                    high_lcid_to_curr_lcid = level_label_maps[level-1]
-                    level_prob = torch.zeros(level_score.shape).cuda()
-                    for high_lcid in range(high_lcid_to_curr_lcid.shape[0]):
-                        curr_lcid_mask = high_lcid_to_curr_lcid[high_lcid]
-                        if curr_lcid_mask.sum().item() > 0:
-                            level_prob[:, curr_lcid_mask] = func(level_score[:, curr_lcid_mask])
-                    level_probs.append(level_prob)
+            if stage == 1 or stage == 0:
+                level_scores = []
+                level_probs = []
+                for level in range(num_levels):
+                    level_score = model(image, level)
+                    level_scores.append(level_score)
 
-            all_probs = torch.ones((batch_size, num_classes)).cuda()
-            for level in range(num_levels):
-                level_prob = level_probs[level]
-                related_lcids = label_map[:, level]
-                related_lcids = related_lcids[related_lcids >= 0]
-                unrelated_class_num1 = (label_map[:, level] < 0).sum().item()
-                unrelated_class_num2 = label_map.shape[0] - related_lcids.shape[0]
-                assert unrelated_class_num1 == unrelated_class_num2
-                all_probs[:, unrelated_class_num1:] *= level_prob[:, related_lcids]
+                    if level == 0:
+                        level_prob = func(level_score)
+                        level_probs.append(level_prob)
+                    else:
+                        high_lcid_to_curr_lcid = level_label_maps[level-1]
+                        level_prob = torch.zeros(level_score.shape).cuda()
+                        for high_lcid in range(high_lcid_to_curr_lcid.shape[0]):
+                            curr_lcid_mask = high_lcid_to_curr_lcid[high_lcid]
+                            if curr_lcid_mask.sum().item() > 0:
+                                level_prob[:, curr_lcid_mask] = func(level_score[:, curr_lcid_mask])
+                        level_probs.append(level_prob)
 
-            if stage == 1:
-                all_probs = level_probs[0]
-                label = label_map[label, 0]
+                all_probs = torch.ones((batch_size, num_classes)).cuda()
+                for level in range(num_levels):
+                    level_prob = level_probs[level]
+                    related_lcids = label_map[:, level]
+                    related_lcids = related_lcids[related_lcids >= 0]
+                    unrelated_class_num1 = (label_map[:, level] < 0).sum().item()
+                    unrelated_class_num2 = label_map.shape[0] - related_lcids.shape[0]
+                    assert unrelated_class_num1 == unrelated_class_num2
+                    all_probs[:, unrelated_class_num1:] *= level_prob[:, related_lcids]
+
+            elif stage == 2:
+                all_probs = model(image)
+
+            else:
+                print('ERROR STAGE: %d' % stage)
+                exit(-1)
+
+            # if stage == 1:
+            #     all_probs = level_probs[0]
+            #     label = label_map[label, 0]
 
             l1_mask = label < l1_raw_cls_num
             l1_scores = all_probs[l1_mask]
