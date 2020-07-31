@@ -18,6 +18,7 @@ DATASET:
 
 BACKBONE:
   TYPE: 'res32_cifar'
+  FREEZE: False
 
 MODULE:
   TYPE: 'GAP'

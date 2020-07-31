@@ -38,11 +38,12 @@ def train_model(
 
     batch_cnt = 0
     batch_loss = 0
+    batch_level_loss = [0] * label_map.shape[1]
     batch_acc = [0] * label_map.shape[1]
     batch_sizes = [0] * label_map.shape[1]
     for i, (image, label, meta) in enumerate(trainLoader):
 
-        loss = None
+        level_loss_list = [None] * label_map.shape[1]
         for level in range(label_map.shape[1]):
             level_label = label_map[label, level]
             level_mask = level_label >= 0
@@ -56,17 +57,16 @@ def train_model(
 
             level_res = torch.argmax(level_score, 1)
             level_acc = accuracy(level_res.cpu().numpy(), level_label.cpu().numpy())[0]
-
-            if loss is None:
-                loss = level_loss
-            else:
-                loss += level_loss
+            level_loss_list[level] = level_loss
 
             batch_acc[level] += level_acc
             batch_sizes[level] += level_label.shape[0]
             all_cnt[level] += level_label.shape[0]
             all_acc[level] += level_acc * level_label.shape[0]
 
+        for level, level_loss in enumerate(level_loss_list):
+            batch_level_loss[level] += level_loss
+        loss = sum(level_loss_list)
         batch_cnt += 1
         batch_loss += loss
         optimizer.zero_grad()
@@ -74,13 +74,19 @@ def train_model(
         optimizer.step()
 
         if i % cfg.SHOW_STEP == 0:
-            pbar_str = "Epoch:{:>3d}  Batch:{:>3d}/{}  Batch_Loss:{:>5.3f}  L1/L2:{}/{}  ".format(
-                epoch, i, number_batch, batch_loss / batch_cnt, int(batch_sizes[0] * 1.0 / batch_cnt), int(batch_sizes[1] * 1.0 / batch_cnt))
+            pbar_str = "Epoch:{:>3d}  Batch:{:>3d}/{}  Loss:{:>5.3f}[{:>5.3f}/{:>5.3f}]  L1/L2:{}/{}  ".format(
+                epoch, i, number_batch,
+                batch_loss / batch_cnt,
+                batch_level_loss[0] / batch_cnt,
+                batch_level_loss[1] / batch_cnt,
+                int(batch_sizes[0] * 1.0 / batch_cnt),
+                int(batch_sizes[1] * 1.0 / batch_cnt))
             for level, acc in enumerate(batch_acc):
                 pbar_str += 'Level %d Acc: %.4f  ' % (level + 1, acc / batch_cnt)
             logger.info(pbar_str)
             batch_cnt = 0
             batch_loss = 0
+            batch_level_loss = [0] * label_map.shape[1]
             batch_acc = [0] * label_map.shape[1]
             batch_sizes = [0] * label_map.shape[1]
 

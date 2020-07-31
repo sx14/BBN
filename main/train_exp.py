@@ -52,6 +52,14 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--pretrained_path",
+        dest='pretrained_path',
+        required=False,
+        default="output/cifar100/CIFAR100.res32.200epoch/models/best_model.pth",
+        type=str,
+    )
+
+    parser.add_argument(
         "opts",
         help="modify config options using the command-line",
         default=None,
@@ -75,6 +83,17 @@ def load_label_map(cache_dir, head_ratio, cluster_num):
     for level in range(len(level_label_maps)):
         level_label_maps[level] = torch.from_numpy(level_label_maps[level]).byte()
     return label_map, level_label_maps
+
+
+def load_pretrained_weight(model, weight_path):
+    checkpoint = torch.load(weight_path)
+    pre_state_dict = checkpoint['state_dict']
+    mod_state_dict = model.state_dict()
+    for k in mod_state_dict:
+        if k in pre_state_dict:
+            mod_state_dict[k] = pre_state_dict[k]
+    model.load_state_dict(mod_state_dict)
+    print('Load pretrained weight from %s' % weight_path)
 
 
 if __name__ == "__main__":
@@ -110,6 +129,7 @@ if __name__ == "__main__":
     l2_cls_num = label_map[:, 1].max().item() + 1
 
     model = get_model(cfg, [l1_cls_num, l2_cls_num], device, logger)
+    # load_pretrained_weight(model, args.pretrained_path)
     combiner = Combiner(cfg, device)
     optimizer = get_optimizer(cfg, model)
     scheduler = get_scheduler(cfg, optimizer)
@@ -168,6 +188,8 @@ if __name__ == "__main__":
         writer.add_graph(model if cfg.CPU_MODE else model.module, (dummy_input,))
     else:
         writer = None
+
+
 
     best_result, best_epoch, start_epoch = 0, 0, 1
     # ----- BEGIN RESUME ---------
