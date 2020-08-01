@@ -10,6 +10,7 @@ from utils.utils import (
     get_model,
     get_category_list,
 )
+
 from core.function_exp import train_model, valid_model
 from core.combiner import Combiner
 
@@ -96,15 +97,13 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore")
     cudnn.benchmark = True
     auto_resume = args.auto_resume
+    device = torch.device("cpu" if cfg.CPU_MODE else "cuda")
 
-    label_map, level_label_maps = load_label_map(args.cache_dir, cfg.HEAD_RATIO, cfg.CLUSTER_NUM)
     train_set = eval(cfg.DATASET.DATASET)("train", cfg)
     valid_set = eval(cfg.DATASET.DATASET)("valid", cfg)
 
     annotations = train_set.get_annotations()
     num_classes = train_set.get_num_classes()
-    device = torch.device("cpu" if cfg.CPU_MODE else "cuda")
-
     num_class_list, cat_list = get_category_list(annotations, num_classes, cfg)
 
     para_dict = {
@@ -118,6 +117,7 @@ if __name__ == "__main__":
     epoch_number = cfg.TRAIN.MAX_EPOCH
 
     # ----- BEGIN MODEL BUILDER -----
+    label_map, level_label_maps = load_label_map(args.cache_dir, cfg.HEAD_RATIO, cfg.CLUSTER_NUM)
     l1_cls_num = label_map[:, 0].max().item() + 1
     l2_cls_num = label_map[:, 1].max().item() + 1
 
@@ -129,6 +129,7 @@ if __name__ == "__main__":
         last_stage_weight_path = os.path.join(model_dir, 'best_model_stage1.pth')
         load_last_stage(model, last_stage_weight_path)
         model.module.freeze_backbone()
+        train_set.gen_class_balance_data()
 
     # load_pretrained_weight(model, args.pretrained_path)
     combiner = Combiner(cfg, device)

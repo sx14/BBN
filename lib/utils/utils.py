@@ -94,7 +94,7 @@ def get_model(cfg, num_classes, device, logger):
         if cfg.TRAIN_STAGE == 1:
             model = Network1(cfg, mode="train", num_classes=num_classes)
         else:
-            model = Network(cfg, mode="train", num_classes=num_classes)
+            model = Network(cfg, mode="train", num_classes=int(sum(num_classes) / 100) * 100)
     else:
         if isinstance(num_classes, list) and not cfg.MULTI_BRANCH:
             model = Network1(cfg, mode="train", num_classes=num_classes)

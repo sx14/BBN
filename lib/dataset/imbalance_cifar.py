@@ -1,5 +1,6 @@
 # To ensure fairness, we use the same code in LDAM (https://github.com/kaidic/LDAM-DRW) to produce long-tailed CIFAR datasets.
 
+from collections import defaultdict
 import torchvision
 import torchvision.transforms as transforms
 import numpy as np
@@ -43,6 +44,30 @@ class IMBALANCECIFAR10(torchvision.datasets.CIFAR10):
         # import matplotlib.pyplot as plt
         # plt.hist(self.targets)
         # plt.show()
+
+    def gen_class_balance_data(self):
+
+        label_to_inds = defaultdict(list)
+        for ind, label in enumerate(self.targets):
+            label_to_inds[label].append(ind)
+
+        max_cls_sample_num = max([len(cls_inds) for cls_inds in label_to_inds.values()])
+        target_sample_sum = max_cls_sample_num * len(label_to_inds)
+
+        new_inds = []
+        for label, inds in label_to_inds.items():
+            new_inds.extend(inds)   # add original samples
+            org_cls_sample_num = len(inds)
+            # extend
+            if org_cls_sample_num < max_cls_sample_num:
+                num_to_extend = max_cls_sample_num - len(inds)
+                for b in range(int(num_to_extend / org_cls_sample_num)):
+                    new_inds.extend(inds)
+                new_inds.extend(inds[:num_to_extend % org_cls_sample_num])
+
+        assert len(new_inds) == target_sample_sum
+        self.data = self.data[new_inds]
+        self.targets = np.array(self.targets)[new_inds].tolist()
 
     def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
         img_max = len(self.data) / cls_num
