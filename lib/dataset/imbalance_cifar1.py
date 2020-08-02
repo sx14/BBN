@@ -53,7 +53,7 @@ class IMBALANCECIFAR10S(torchvision.datasets.CIFAR10):
             cid_to_lcid = pickle.load(f)
         return cid_to_lcid
 
-    def convert_labels(self, show_dist=False):
+    def convert_labels(self, show_dist=True):
         # merge tail classes
         import matplotlib.pyplot as plt
 

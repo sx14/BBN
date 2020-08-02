@@ -126,6 +126,7 @@ if __name__ == "__main__":
 
     model = get_model(cfg, [l1_cls_num, l2_cls_num], device, logger)
     if cfg.TRAIN_STAGE == 2:
+        # last_stage_weight_path = 'output/cifar100/CIFAR100.res32.200epoch/models/best_model.pth'
         last_stage_weight_path = os.path.join(model_dir, 'best_model_stage1.pth')
         load_last_stage(model, last_stage_weight_path)
         model.module.freeze_backbone()
