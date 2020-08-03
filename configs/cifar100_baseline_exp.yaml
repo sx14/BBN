@@ -1,4 +1,4 @@
-NAME: 'CIFAR100.res32.200epoch'
+NAME: 'CIFAR100.res32.200epoch.tmp'
 OUTPUT_DIR: './output/cifar100'
 SHOW_STEP: 100
 SAVE_STEP: 5
@@ -34,7 +34,7 @@ TRAIN:
     TYPE: 'default'
   OPTIMIZER:
     TYPE: 'SGD'
-    BASE_LR: 0.1
+    BASE_LR: 0.0001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 2e-4
   LR_SCHEDULER:

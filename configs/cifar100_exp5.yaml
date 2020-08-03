@@ -1,8 +1,8 @@
 # DESCRIPTION: 'exp2: multi-branch'
 HEAD_RATIO: 20  # %
-CLUSTER_NUM: 20
+CLUSTER_NUM: 2
 TRAIN_STAGE: 1
-NAME: 'exp5.CIFAR100.res32.200epoch.20.20.decouple'
+NAME: 'exp5.CIFAR100.res32.200epoch.20.2.decouple.1'
 OUTPUT_DIR: './output/cifar100'
 SHOW_STEP: 100
 SAVE_STEP: 5

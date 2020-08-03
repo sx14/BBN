@@ -10,7 +10,7 @@ class CrossEntropy(nn.Module):
 
     def forward(self, output, target):
         output = output
-        loss = F.cross_entropy(output, target, size_average=False)
+        loss = F.cross_entropy(output, target)
         return loss
 
 

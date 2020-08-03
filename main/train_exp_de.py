@@ -69,6 +69,10 @@ def load_label_map(cache_dir, head_ratio, cluster_num):
     save_path = os.path.join(cache_dir, 'cid_to_lcid_%d_%d.bin' % (head_ratio, cluster_num))
     with open(save_path, 'rb') as f:
         label_map = pickle.load(f)
+
+    # without virtual categories
+    label_map_l1 = label_map[:, 0]
+    label_map[label_map_l1 >= head_ratio, 0] = -1
     label_map = torch.Tensor(label_map).long()
 
     save_path = os.path.join(cache_dir, 'curr_lcid_to_next_lcid_%d_%d.bin' % (head_ratio, cluster_num))
